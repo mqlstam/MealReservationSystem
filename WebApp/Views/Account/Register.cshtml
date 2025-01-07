@@ -1,0 +1,121 @@
+@model WebApp.Models.Account.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Register" method="post">
+            <h4>Create a new account.</h4>
+            <hr />
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" aria-required="true" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="FirstName" class="form-label"></label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="LastName" class="form-label"></label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="DateOfBirth" class="form-label"></label>
+                <input asp-for="DateOfBirth" class="form-control" type="date" />
+                <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label">Registration Type</label>
+                <div class="form-check">
+                    <input asp-for="IsStudent" class="form-check-input" checked />
+                    <label class="form-check-label">Register as Student</label>
+                </div>
+            </div>
+
+            <div id="studentFields">
+                <div class="form-group mb-3">
+                    <label asp-for="StudentNumber" class="form-label"></label>
+                    <input asp-for="StudentNumber" class="form-control" />
+                    <span asp-validation-for="StudentNumber" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="StudyCity" class="form-label"></label>
+                    <select asp-for="StudyCity" class="form-control">
+                        <option value="">Select a city</option>
+                        <option value="Breda">Breda</option>
+                        <option value="DenBosch">Den Bosch</option>
+                        <option value="Tilburg">Tilburg</option>
+                    </select>
+                    <span asp-validation-for="StudyCity" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div id="employeeFields" style="display: none;">
+                <div class="form-group mb-3">
+                    <label asp-for="EmployeeNumber" class="form-label"></label>
+                    <input asp-for="EmployeeNumber" class="form-control" />
+                    <span asp-validation-for="EmployeeNumber" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="CafeteriaLocation" class="form-label"></label>
+                    <select asp-for="CafeteriaLocation" class="form-control">
+                        <option value="">Select a location</option>
+                        <option value="LA">Lovensdijkstraat A</option>
+                        <option value="LD">Lovensdijkstraat D</option>
+                        <option value="HA">Hogeschoollaan A</option>
+                        <option value="HB">Hogeschoollaan B</option>
+                        <option value="DB">Den Bosch</option>
+                        <option value="TB">Tilburg</option>
+                    </select>
+                    <span asp-validation-for="CafeteriaLocation" class="text-danger"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            $('#IsStudent').change(function() {
+                if(this.checked) {
+                    $('#studentFields').show();
+                    $('#employeeFields').hide();
+                } else {
+                    $('#studentFields').hide();
+                    $('#employeeFields').show();
+                }
+            });
+        });
+    </script>
+}

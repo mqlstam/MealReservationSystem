@@ -30,8 +30,8 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
         
-      - name: Publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      - name: Publish WebApp
+        run: dotnet publish WebApp/WebApp.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -48,6 +48,7 @@ jobs:
     
     permissions:
       id-token: write
+      contents: read
       statuses: write
 
     steps:
@@ -76,8 +77,8 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Production
         run: |
           dotnet tool install --global dotnet-ef
-          dotnet ef database update --project Infrastructure --startup-project WebApp --context ApplicationDbContext
-          dotnet ef database update --project Infrastructure --startup-project WebApp --context ApplicationIdentityDbContext
+          dotnet ef database update --project WebApp --startup-project WebApp --context ApplicationDbContext
+          dotnet ef database update --project WebApp --startup-project WebApp --context ApplicationIdentityDbContext
 
       - name: Publish Deployment Status
         if: always()

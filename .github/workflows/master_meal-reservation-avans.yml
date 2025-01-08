@@ -77,8 +77,8 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Production
         run: |
           dotnet tool install --global dotnet-ef
-          dotnet ef database update --project WebApp --startup-project WebApp --context ApplicationDbContext
-          dotnet ef database update --project WebApp --startup-project WebApp --context ApplicationIdentityDbContext
+          dotnet ef database update --project WebApp/WebApp.csproj --startup-project WebApp/WebApp.csproj --context ApplicationDbContext
+          dotnet ef database update --project WebApp/WebApp.csproj --startup-project WebApp/WebApp.csproj --context ApplicationIdentityDbContext
 
       - name: Publish Deployment Status
         if: always()

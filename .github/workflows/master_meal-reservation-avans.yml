@@ -72,14 +72,6 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      - name: Apply database migrations
-        env:
-          ASPNETCORE_ENVIRONMENT: Production
-        run: |
-          dotnet tool install --global dotnet-ef
-          dotnet ef database update --project WebApp/WebApp.csproj --startup-project WebApp/WebApp.csproj --context ApplicationDbContext
-          dotnet ef database update --project WebApp/WebApp.csproj --startup-project WebApp/WebApp.csproj --context ApplicationIdentityDbContext
-
       - name: Publish Deployment Status
         if: always()
         uses: actions/github-script@v7

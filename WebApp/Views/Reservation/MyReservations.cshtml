@@ -1,0 +1,95 @@
+@model WebApp.Models.Reservation.MyReservationsViewModel
+@{
+    ViewData["Title"] = "My Reservations";
+}
+
+<div class="container">
+    <h1>My Reservations</h1>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.NoShowCount > 0)
+    {
+        <div class="alert @(Model.NoShowCount >= 2 ? "alert-danger" : "alert-warning")">
+            <i class="bi bi-exclamation-triangle"></i>
+            You have @Model.NoShowCount no-show@(Model.NoShowCount > 1 ? "s" : "").
+            @if (Model.NoShowCount >= 2)
+            {
+                <strong>You cannot make new reservations until this is resolved.</strong>
+            }
+        </div>
+    }
+
+    @if (!Model.Reservations.Any())
+    {
+        <div class="alert alert-info">
+            <p>You don't have any reservations yet.</p>
+            <a asp-action="Available" class="btn btn-primary">Browse Available Packages</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var reservation in Model.Reservations)
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">@reservation.PackageName</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Location:</strong> @reservation.Location, @reservation.City<br />
+                                <strong>Price:</strong> @reservation.Price.ToString("C")<br />
+                                <strong>Type:</strong> @reservation.MealType<br />
+                                <strong>Pickup Time:</strong> @reservation.PickupDateTime.ToString("g")
+                            </div>
+
+                            <div class="mb-3">
+                                <h6>Products:</h6>
+                                <ul class="list-unstyled">
+                                    @foreach (var product in reservation.Products)
+                                    {
+                                        <li><i class="bi bi-check2"></i> @product</li>
+                                    }
+                                </ul>
+                            </div>
+
+                            @if (reservation.IsPickedUp)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle"></i> Picked Up
+                                </div>
+                            }
+                            else if (reservation.IsNoShow)
+                            {
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-x-circle"></i> No-Show
+                                </div>
+                            }
+                            else if (reservation.HasExpired)
+                            {
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-circle"></i> Expired
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info">
+                                    <i class="bi bi-clock"></i> 
+                                    Pickup before @reservation.PickupDateTime.ToString("g")
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -1,6 +1,8 @@
 using Infrastructure;
 using Infrastructure.Identity;
+using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,20 +14,26 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-// Seed data
+// Migrate and seed database
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        var identityContext = services.GetRequiredService<ApplicationIdentityDbContext>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<ApplicationRole>>();
-        await SeedData.Initialize(userManager, roleManager);
+        
+        context.Database.Migrate();
+        identityContext.Database.Migrate();
+        
+        await DatabaseSeeder.SeedDatabase(context, userManager, roleManager);
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
     }
 }
 

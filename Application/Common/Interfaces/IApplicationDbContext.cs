@@ -9,6 +9,7 @@ public interface IApplicationDbContext
     DbSet<Package> Packages { get; }
     DbSet<Cafeteria> Cafeterias { get; }
     DbSet<Reservation> Reservations { get; }
+    DbSet<Student> Students { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

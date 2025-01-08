@@ -30,6 +30,19 @@ public class PackageRepositoryTests
         _context.Cafeterias.Add(cafeteria);
         await _context.SaveChangesAsync();
 
+        var student = new Student
+        {
+            StudentNumber = "123456",
+            FirstName = "Test",
+            LastName = "Student",
+            Email = "test@test.com",
+            DateOfBirth = new DateTime(2000, 1, 1),
+            StudyCity = City.Breda,
+            IdentityId = "test-identity-id"
+        };
+        _context.Students.Add(student);
+        await _context.SaveChangesAsync();
+
         var futurePackage = new Package
         {
             Name = "Future Package",
@@ -66,7 +79,7 @@ public class PackageRepositoryTests
             CafeteriaId = cafeteria.Id,
             Reservation = new Reservation
             {
-                StudentId = "test-student",
+                StudentNumber = student.StudentNumber,
                 ReservationDateTime = DateTime.Now
             }
         };

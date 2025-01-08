@@ -14,15 +14,18 @@ public class PackageManagementController : Controller
 {
     private readonly IPackageRepository _packageRepository;
     private readonly ICafeteriaRepository _cafeteriaRepository;
+    private readonly IStudentService _studentService;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public PackageManagementController(
         IPackageRepository packageRepository,
         ICafeteriaRepository cafeteriaRepository,
+        IStudentService studentService,
         UserManager<ApplicationUser> userManager)
     {
         _packageRepository = packageRepository;
         _cafeteriaRepository = cafeteriaRepository;
+        _studentService = studentService;
         _userManager = userManager;
     }
 
@@ -33,8 +36,13 @@ public class PackageManagementController : Controller
 
         var packages = await _packageRepository.GetAllAsync();
         
-        var viewModels = packages
-            .Select(p => new PackageManagementViewModel
+        var viewModels = packages.Select(async p =>
+        {
+            var student = p.Reservation?.StudentNumber != null 
+                ? await _studentService.GetStudentByNumberAsync(p.Reservation.StudentNumber)
+                : null;
+
+            return new PackageManagementViewModel
             {
                 Id = p.Id,
                 Name = p.Name,
@@ -48,24 +56,28 @@ public class PackageManagementController : Controller
                 Products = p.Products.Select(prod => prod.Name).ToList(),
                 IsReserved = p.Reservation != null,
                 IsPickedUp = p.Reservation?.IsPickedUp ?? false,
-                ReservedBy = p.Reservation?.StudentId
-            });
+                ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null
+            };
+        });
+
+        var items = await Task.WhenAll(viewModels);
+        var finalViewModels = items.AsQueryable();
 
         if (cityFilter.HasValue)
-            viewModels = viewModels.Where(p => p.City == cityFilter);
+            finalViewModels = finalViewModels.Where(p => p.City == cityFilter);
 
         if (typeFilter.HasValue)
-            viewModels = viewModels.Where(p => p.MealType == typeFilter);
+            finalViewModels = finalViewModels.Where(p => p.MealType == typeFilter);
 
         if (maxPrice.HasValue)
-            viewModels = viewModels.Where(p => p.Price <= maxPrice);
+            finalViewModels = finalViewModels.Where(p => p.Price <= maxPrice);
 
         if (!showExpired)
-            viewModels = viewModels.Where(p => !p.HasExpired);
+            finalViewModels = finalViewModels.Where(p => !p.HasExpired);
 
         var model = new PackageListViewModel
         {
-            Packages = viewModels.OrderBy(p => p.PickupDateTime).ToList(),
+            Packages = finalViewModels.OrderBy(p => p.PickupDateTime).ToList(),
             CityFilter = cityFilter,
             TypeFilter = typeFilter,
             MaxPriceFilter = maxPrice,
@@ -80,8 +92,13 @@ public class PackageManagementController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
-        var cafeteria = await _cafeteriaRepository.GetByLocationAsync(
-            Enum.Parse<Domain.Enums.CafeteriaLocation>(user.CafeteriaLocation!));
+        if (string.IsNullOrEmpty(user.CafeteriaLocation) || !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
+        {
+            TempData["Error"] = "Your account is not properly configured for cafeteria management.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        var cafeteria = await _cafeteriaRepository.GetByLocationAsync(location);
 
         if (cafeteria == null)
         {
@@ -108,8 +125,13 @@ public class PackageManagementController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
-        var cafeteria = await _cafeteriaRepository.GetByLocationAsync(
-            Enum.Parse<Domain.Enums.CafeteriaLocation>(user.CafeteriaLocation!));
+        if (string.IsNullOrEmpty(user.CafeteriaLocation) || !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
+        {
+            ModelState.AddModelError("", "Your account is not properly configured for cafeteria management.");
+            return View(model);
+        }
+
+        var cafeteria = await _cafeteriaRepository.GetByLocationAsync(location);
 
         if (cafeteria == null)
         {
@@ -117,7 +139,7 @@ public class PackageManagementController : Controller
             return View(model);
         }
 
-        if (model.MealType == Domain.Enums.MealType.HotMeal && !cafeteria.OffersHotMeals)
+        if (model.MealType == MealType.HotMeal && !cafeteria.OffersHotMeals)
         {
             ModelState.AddModelError("MealType", "Your location does not offer hot meals.");
             return View(model);
@@ -141,7 +163,7 @@ public class PackageManagementController : Controller
             Price = model.Price,
             MealType = model.MealType,
             CafeteriaId = cafeteria.Id,
-            Products = model.Products.Select(name => new Product { Name = name }).ToList()
+            Products = model.ExampleProducts.Select(name => new Product { Name = name }).ToList()
         };
 
         await _packageRepository.AddAsync(package);
@@ -174,6 +196,12 @@ public class PackageManagementController : Controller
             return NotFound();
 
         package.Reservation.IsNoShow = true;
+        
+        // Update the student's no-show count
+        await _studentService.UpdateNoShowCountAsync(
+            package.Reservation.StudentNumber, 
+            (await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber))?.NoShowCount + 1 ?? 1);
+            
         await _packageRepository.UpdateAsync(package);
 
         TempData["Success"] = "Package marked as no-show.";

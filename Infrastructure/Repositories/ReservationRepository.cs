@@ -17,17 +17,26 @@ public class ReservationRepository : IReservationRepository
     {
         return await _context.Reservations
             .Include(r => r.Package)
-            .ThenInclude(p => p!.Products)
+            .ThenInclude(p => p.Products)
+            .Include(r => r.Student)
             .OrderByDescending(r => r.ReservationDateTime)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Reservation>> GetByStudentIdAsync(string studentId)
+    public async Task<IEnumerable<Reservation>> GetByStudentIdAsync(string identityId)
     {
+        // First find the student by their identity ID
+        var student = await _context.Students
+            .FirstOrDefaultAsync(s => s.IdentityId == identityId);
+
+        if (student == null)
+            return new List<Reservation>();
+
         return await _context.Reservations
             .Include(r => r.Package)
-            .ThenInclude(p => p!.Products)
-            .Where(r => r.StudentId == studentId)
+            .ThenInclude(p => p.Products)
+            .Include(r => r.Student)
+            .Where(r => r.StudentNumber == student.StudentNumber)
             .OrderByDescending(r => r.ReservationDateTime)
             .ToListAsync();
     }
@@ -36,7 +45,8 @@ public class ReservationRepository : IReservationRepository
     {
         return await _context.Reservations
             .Include(r => r.Package)
-            .ThenInclude(p => p!.Products)
+            .ThenInclude(p => p.Products)
+            .Include(r => r.Student)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
@@ -63,17 +73,25 @@ public class ReservationRepository : IReservationRepository
         }
     }
 
-    public async Task<bool> HasReservationForDateAsync(string studentId, DateTime date)
+    public async Task<bool> HasReservationForDateAsync(string identityId, DateTime date)
     {
+        var student = await _context.Students
+            .FirstOrDefaultAsync(s => s.IdentityId == identityId);
+
+        if (student == null)
+            return false;
+
         return await _context.Reservations
             .Include(r => r.Package)
-            .AnyAsync(r => r.StudentId == studentId && 
+            .AnyAsync(r => r.StudentNumber == student.StudentNumber && 
                           r.Package.PickupDateTime.Date == date.Date);
     }
 
-    public async Task<int> GetNoShowCountAsync(string studentId)
+    public async Task<int> GetNoShowCountAsync(string identityId)
     {
-        return await _context.Reservations
-            .CountAsync(r => r.StudentId == studentId && r.IsNoShow);
+        var student = await _context.Students
+            .FirstOrDefaultAsync(s => s.IdentityId == identityId);
+
+        return student?.NoShowCount ?? 0;
     }
 }

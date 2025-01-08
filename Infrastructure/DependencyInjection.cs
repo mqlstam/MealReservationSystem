@@ -1,6 +1,8 @@
+using Application.Common.Interfaces;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -47,6 +49,9 @@ public static class DependencyInjection
 
         // Register Identity Service
         services.AddScoped<IIdentityService, IdentityService>();
+
+        // Register Student Service
+        services.AddScoped<IStudentService, StudentService>();
 
         return services;
     }

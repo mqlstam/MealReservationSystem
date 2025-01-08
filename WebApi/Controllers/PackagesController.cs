@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DTOs;
@@ -11,13 +12,16 @@ public class PackagesController : ControllerBase
 {
     private readonly IPackageRepository _packageRepository;
     private readonly IReservationRepository _reservationRepository;
+    private readonly IStudentService _studentService;
 
     public PackagesController(
         IPackageRepository packageRepository,
-        IReservationRepository reservationRepository)
+        IReservationRepository reservationRepository,
+        IStudentService studentService)
     {
         _packageRepository = packageRepository;
         _reservationRepository = reservationRepository;
+        _studentService = studentService;
     }
 
     [HttpGet]
@@ -47,7 +51,6 @@ public class PackagesController : ControllerBase
     public async Task<ActionResult<PackageDto>> GetPackage(int id)
     {
         var package = await _packageRepository.GetByIdAsync(id);
-        
         if (package == null)
             return NotFound();
 
@@ -99,6 +102,16 @@ public class PackagesController : ControllerBase
     [HttpPost("{id}/reserve")]
     public async Task<IActionResult> ReservePackage(int id)
     {
+        // Get the student from the identity claim
+        var identityId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(identityId))
+            return Unauthorized();
+
+        // Get student from business database
+        var student = await _studentService.GetStudentByIdentityIdAsync(identityId);
+        if (student == null)
+            return BadRequest("Student record not found");
+
         var package = await _packageRepository.GetByIdAsync(id);
         if (package == null)
             return NotFound();
@@ -106,23 +119,22 @@ public class PackagesController : ControllerBase
         if (package.Reservation != null)
             return BadRequest("Package is already reserved");
 
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
-
-        // Check if user has reached the no-show limit
-        var noShowCount = await _reservationRepository.GetNoShowCountAsync(userId);
-        if (noShowCount >= 2)
+        // Check no-show limit
+        if (student.NoShowCount >= 2)
             return BadRequest("You cannot make reservations due to multiple no-shows");
 
-        // Check if user already has a reservation for this date
-        if (await _reservationRepository.HasReservationForDateAsync(userId, package.PickupDateTime.Date))
+        // Check age restriction
+        if (package.IsAdultOnly && !student.IsOfLegalAge)
+            return BadRequest("This package is restricted to users 18 and older");
+
+        // Check existing reservation for the date
+        if (await _reservationRepository.HasReservationForDateAsync(identityId, package.PickupDateTime.Date))
             return BadRequest("You already have a reservation for this date");
 
-        var reservation = new Domain.Entities.Reservation
+        var reservation = new Reservation
         {
             PackageId = package.Id,
-            StudentId = userId,
+            StudentNumber = student.StudentNumber,
             ReservationDateTime = DateTime.Now
         };
 

@@ -9,7 +9,7 @@ public class ReservationType : ObjectType<Reservation>
     {
         descriptor.Field(r => r.Id);
         descriptor.Field(r => r.PackageId);
-        descriptor.Field(r => r.StudentId);
+        descriptor.Field(r => r.StudentNumber);
         descriptor.Field(r => r.ReservationDateTime);
         descriptor.Field(r => r.IsPickedUp);
         descriptor.Field(r => r.IsNoShow);

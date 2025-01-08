@@ -42,7 +42,7 @@ public class CreatePackageViewModel
     [Required]
     [MinLength(1, ErrorMessage = "At least one product is required")]
     [Display(Name = "Example Products")]
-    public List<string> Products { get; set; } = new();
+    public List<string> ExampleProducts { get; set; } = new();
 }
 
 public class FutureDateAttribute : ValidationAttribute

@@ -21,6 +21,19 @@ public class ReservationRepositoryTests
     public async Task HasReservationForDate_ShouldReturnTrue_WhenStudentHasReservation()
     {
         // Arrange
+        var student = new Student
+        {
+            StudentNumber = "123456",
+            FirstName = "Test",
+            LastName = "Student",
+            Email = "test@test.com",
+            DateOfBirth = new DateTime(2000, 1, 1),
+            StudyCity = City.Breda,
+            IdentityId = "test-identity-id"
+        };
+        _context.Students.Add(student);
+        await _context.SaveChangesAsync();
+
         var cafeteria = new Cafeteria
         {
             City = City.Breda,
@@ -47,7 +60,7 @@ public class ReservationRepositoryTests
         var reservation = new Reservation
         {
             PackageId = package.Id,
-            StudentId = "test-student",
+            StudentNumber = student.StudentNumber,
             ReservationDateTime = DateTime.Now
         };
         _context.Reservations.Add(reservation);
@@ -55,7 +68,7 @@ public class ReservationRepositoryTests
 
         // Act
         var hasReservation = await _repository.HasReservationForDateAsync(
-            "test-student", 
+            student.IdentityId,
             DateTime.Now.AddDays(1));
 
         // Assert
@@ -66,59 +79,22 @@ public class ReservationRepositoryTests
     public async Task GetNoShowCount_ShouldReturnCorrectCount()
     {
         // Arrange
-        var cafeteria = new Cafeteria
+        var student = new Student
         {
-            City = City.Breda,
-            Location = CafeteriaLocation.LA,
-            OffersHotMeals = true
+            StudentNumber = "123456",
+            FirstName = "Test",
+            LastName = "Student",
+            Email = "test@test.com",
+            DateOfBirth = new DateTime(2000, 1, 1),
+            StudyCity = City.Breda,
+            IdentityId = "test-identity-id",
+            NoShowCount = 2
         };
-        _context.Cafeterias.Add(cafeteria);
-        await _context.SaveChangesAsync();
-
-        var package1 = new Package
-        {
-            Name = "Package 1",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(-1),
-            LastReservationDateTime = DateTime.Now.AddDays(-2),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            CafeteriaId = cafeteria.Id
-        };
-        var package2 = new Package
-        {
-            Name = "Package 2",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(-2),
-            LastReservationDateTime = DateTime.Now.AddDays(-3),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            CafeteriaId = cafeteria.Id
-        };
-        _context.Packages.AddRange(package1, package2);
-        await _context.SaveChangesAsync();
-
-        var reservation1 = new Reservation
-        {
-            PackageId = package1.Id,
-            StudentId = "test-student",
-            ReservationDateTime = DateTime.Now.AddDays(-2),
-            IsNoShow = true
-        };
-        var reservation2 = new Reservation
-        {
-            PackageId = package2.Id,
-            StudentId = "test-student",
-            ReservationDateTime = DateTime.Now.AddDays(-3),
-            IsNoShow = true
-        };
-        _context.Reservations.AddRange(reservation1, reservation2);
+        _context.Students.Add(student);
         await _context.SaveChangesAsync();
 
         // Act
-        var noShowCount = await _repository.GetNoShowCountAsync("test-student");
+        var noShowCount = await _repository.GetNoShowCountAsync(student.IdentityId);
 
         // Assert
         Assert.Equal(2, noShowCount);

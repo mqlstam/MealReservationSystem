@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy ASP.Net Core app to Azure Web App - meal-reservation-avans
 
 on:
@@ -9,22 +6,31 @@ on:
       - master
   workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+env:
+  DOTNET_VERSION: '8.x'
+  AZURE_WEBAPP_NAME: 'meal-reservation-avans'
 
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Install dependencies
+        run: dotnet restore
+        
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
 
-      - name: dotnet publish
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+        
+      - name: Publish
         run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
       - name: Upload artifact for deployment job
@@ -35,12 +41,13 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-and-test
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
     permissions:
-      id-token: write #This is required for requesting the JWT
+      id-token: write
 
     steps:
       - name: Download artifact from build job
@@ -59,7 +66,33 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'meal-reservation-avans'
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
           slot-name: 'Production'
           package: .
-          
+
+      - name: Apply database migrations
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
+        run: |
+          dotnet tool install --global dotnet-ef
+          dotnet ef database update --project Infrastructure --startup-project WebApp --context ApplicationDbContext
+          dotnet ef database update --project Infrastructure --startup-project WebApp --context ApplicationIdentityDbContext
+
+      - name: Publish Deployment Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const description = '${{ job.status }}' === 'success' 
+              ? '✅ Deployment successful' 
+              : '❌ Deployment failed';
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: '${{ job.status }}' === 'success' ? 'success' : 'failure',
+              description: description,
+              context: 'Deployment',
+              target_url: '${{ steps.deploy-to-webapp.outputs.webapp-url }}'
+            });

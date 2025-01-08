@@ -48,6 +48,8 @@ jobs:
     
     permissions:
       id-token: write
+      contents: read
+      statuses: write
 
     steps:
       - name: Download artifact from build job

@@ -6,7 +6,7 @@
 <div class="container">
     <h1>Create Package</h1>
 
-    <form asp-action="Create" method="post">
+    <form asp-action="Create" method="post" id="createPackageForm">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
         <div class="row">
@@ -79,11 +79,15 @@
                     <label asp-for="ExampleProducts" class="form-label"></label>
                     <div id="productsContainer">
                         <div class="input-group mb-2">
-                            <input type="text" name="ExampleProducts[0]" class="form-control" placeholder="Product name" />
+                            <input type="text" name="ExampleProducts[0]" class="form-control product-input" 
+                                   placeholder="Product name" required 
+                                   data-val="true" 
+                                   data-val-required="Product name is required" />
                             <button type="button" class="btn btn-danger remove-product" onclick="removeProduct(this)" style="display: none;">Remove</button>
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary" onclick="addProduct()">Add Product</button>
+                    <div id="productsError" class="text-danger"></div>
                     <span asp-validation-for="ExampleProducts" class="text-danger"></span>
                 </div>
             </div>
@@ -103,23 +107,60 @@
     <script>
         let productIndex = 1;
 
+        function validateProducts() {
+            const inputs = document.querySelectorAll('.product-input');
+            let isValid = true;
+            const errorDiv = document.getElementById('productsError');
+            errorDiv.textContent = '';
+
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            if (!isValid) {
+                errorDiv.textContent = 'All product names are required.';
+            }
+
+            return isValid;
+        }
+
         function addProduct() {
             const container = document.getElementById('productsContainer');
             const div = document.createElement('div');
             div.className = 'input-group mb-2';
             div.innerHTML = `
-                <input type="text" name="ExampleProducts[${productIndex}]" class="form-control" placeholder="Product name" />
+                <input type="text" name="ExampleProducts[${productIndex}]" class="form-control product-input" 
+                       placeholder="Product name" required
+                       data-val="true"
+                       data-val-required="Product name is required" />
                 <button type="button" class="btn btn-danger remove-product" onclick="removeProduct(this)">Remove</button>
             `;
             container.appendChild(div);
             productIndex++;
-
             updateRemoveButtons();
         }
 
         function removeProduct(button) {
-            button.closest('.input-group').remove();
-            updateRemoveButtons();
+            const inputGroup = button.closest('.input-group');
+            if (inputGroup) {
+                inputGroup.remove();
+                reindexProducts();
+                updateRemoveButtons();
+                validateProducts();
+            }
+        }
+
+        function reindexProducts() {
+            const inputs = document.querySelectorAll('.product-input');
+            inputs.forEach((input, index) => {
+                input.name = `ExampleProducts[${index}]`;
+            });
+            productIndex = inputs.length;
         }
 
         function updateRemoveButtons() {
@@ -130,5 +171,20 @@
                 button.style.display = containers.length > 1 ? 'block' : 'none';
             });
         }
+
+        document.getElementById('createPackageForm').addEventListener('submit', function(e) {
+            if (!validateProducts()) {
+                e.preventDefault();
+                return false;
+            }
+            return true;
+        });
+
+        // Add input event listeners to validate on typing
+        document.getElementById('productsContainer').addEventListener('input', function(e) {
+            if (e.target.classList.contains('product-input')) {
+                validateProducts();
+            }
+        });
     </script>
 }

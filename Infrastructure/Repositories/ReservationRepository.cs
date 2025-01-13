@@ -25,14 +25,15 @@ public class ReservationRepository : IReservationRepository
 
     public async Task<IEnumerable<Reservation>> GetByStudentIdAsync(string identityId)
     {
-        // First find the student by their identity ID
         var student = await _context.Students
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.IdentityId == identityId);
 
         if (student == null)
             return new List<Reservation>();
 
         return await _context.Reservations
+            .AsNoTracking()
             .Include(r => r.Package)
             .ThenInclude(p => p.Products)
             .Include(r => r.Student)
@@ -75,13 +76,16 @@ public class ReservationRepository : IReservationRepository
 
     public async Task<bool> HasReservationForDateAsync(string identityId, DateTime date)
     {
+        // Execute queries sequentially to avoid concurrent operations
         var student = await _context.Students
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.IdentityId == identityId);
 
         if (student == null)
             return false;
 
         return await _context.Reservations
+            .AsNoTracking()
             .Include(r => r.Package)
             .AnyAsync(r => r.StudentNumber == student.StudentNumber && 
                           r.Package.PickupDateTime.Date == date.Date);
@@ -90,6 +94,7 @@ public class ReservationRepository : IReservationRepository
     public async Task<int> GetNoShowCountAsync(string identityId)
     {
         var student = await _context.Students
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.IdentityId == identityId);
 
         return student?.NoShowCount ?? 0;

@@ -36,7 +36,6 @@ public class ReservationController : Controller
         var student = await _studentService.GetStudentByIdentityIdAsync(user.Id);
         if (student == null)
         {
-            // Create student record if it doesn't exist
             student = await _studentService.GetOrCreateStudentAsync(
                 user.Id,
                 user.StudentNumber!,
@@ -49,52 +48,53 @@ public class ReservationController : Controller
 
         var packages = await _packageRepository.GetAvailablePackagesAsync();
         var noShowCount = student.NoShowCount;
-        
-        var viewModels = packages.Select(async p =>
+        var studentId = user.Id;
+        var isOfLegalAge = student.IsOfLegalAge;
+        var studentItems = new List<AvailablePackageItem>();
+
+        foreach (var package in packages)
         {
             var canReserve = true;
             string? blockReason = null;
 
-            // Check age restriction
-            if (p.IsAdultOnly && !student.IsOfLegalAge)
+            if (package.IsAdultOnly && !isOfLegalAge)
             {
                 canReserve = false;
                 blockReason = "This package is restricted to users 18 and older.";
             }
 
-            // Check no-show limit
             if (noShowCount >= 2)
             {
                 canReserve = false;
                 blockReason = "You have reached the maximum number of no-shows.";
             }
 
-            // Check existing reservation for the day
-            if (await _reservationRepository.HasReservationForDateAsync(user.Id, p.PickupDateTime.Date))
+            if (await _reservationRepository.HasReservationForDateAsync(studentId, package.PickupDateTime.Date))
             {
                 canReserve = false;
                 blockReason = "You already have a reservation for this date.";
             }
 
-            return new AvailablePackageItem
+            var item = new AvailablePackageItem
             {
-                Id = p.Id,
-                Name = p.Name,
-                City = p.City,
-                Location = p.CafeteriaLocation,
-                PickupDateTime = p.PickupDateTime,
-                LastReservationDateTime = p.LastReservationDateTime,
-                IsAdultOnly = p.IsAdultOnly,
-                Price = p.Price,
-                MealType = p.MealType,
-                ExampleProducts = p.Products.Select(prod => prod.Name).ToList(),
+                Id = package.Id,
+                Name = package.Name,
+                City = package.City,
+                Location = package.CafeteriaLocation,
+                PickupDateTime = package.PickupDateTime,
+                LastReservationDateTime = package.LastReservationDateTime,
+                IsAdultOnly = package.IsAdultOnly,
+                Price = package.Price,
+                MealType = package.MealType,
+                ExampleProducts = package.Products.Select(prod => prod.Name).ToList(),
                 CanReserve = canReserve,
                 ReservationBlockReason = blockReason
             };
-        });
 
-        var items = await Task.WhenAll(viewModels);
-        var filteredItems = items.AsQueryable();
+            studentItems.Add(item);
+        }
+
+        var filteredItems = studentItems.AsQueryable();
 
         if (cityFilter.HasValue)
             filteredItems = filteredItems.Where(p => p.City == cityFilter);
@@ -169,28 +169,24 @@ public class ReservationController : Controller
             return RedirectToAction(nameof(Available));
         }
 
-        // Check if package is already reserved
         if (package.Reservation != null)
         {
             TempData["Error"] = "This package has already been reserved.";
             return RedirectToAction(nameof(Available));
         }
 
-        // Check age restriction
         if (package.IsAdultOnly && !student.IsOfLegalAge)
         {
             TempData["Error"] = "This package is restricted to users 18 and older.";
             return RedirectToAction(nameof(Available));
         }
 
-        // Check no-show limit
         if (student.NoShowCount >= 2)
         {
             TempData["Error"] = "You have reached the maximum number of no-shows allowed.";
             return RedirectToAction(nameof(Available));
         }
 
-        // Check if user already has a reservation for this date
         if (await _reservationRepository.HasReservationForDateAsync(user.Id, package.PickupDateTime.Date))
         {
             TempData["Error"] = "You already have a reservation for this date.";

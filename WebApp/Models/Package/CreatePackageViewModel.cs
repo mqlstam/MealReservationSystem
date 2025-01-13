@@ -5,23 +5,23 @@ namespace WebApp.Models.Package;
 
 public class CreatePackageViewModel
 {
-    [Required]
-    [StringLength(100, MinimumLength = 3)]
+    [Required(ErrorMessage = "Name is required")]
+    [StringLength(100, MinimumLength = 3, ErrorMessage = "Name must be between 3 and 100 characters")]
     public string Name { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "City is required")]
     public City City { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Cafeteria location is required")]
     public CafeteriaLocation CafeteriaLocation { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Pickup time is required")]
     [DataType(DataType.DateTime)]
     [Display(Name = "Pickup Time")]
     [FutureDate(ErrorMessage = "Pickup time must be in the future")]
     public DateTime PickupDateTime { get; set; } = DateTime.Now.AddHours(1);
 
-    [Required]
+    [Required(ErrorMessage = "Last reservation time is required")]
     [DataType(DataType.DateTime)]
     [Display(Name = "Last Reservation Time")]
     [FutureDate(ErrorMessage = "Last reservation time must be in the future")]
@@ -30,29 +30,29 @@ public class CreatePackageViewModel
     [Display(Name = "18+ Only")]
     public bool IsAdultOnly { get; set; }
 
-    [Required]
-    [Range(0.01, 100.00)]
+    [Required(ErrorMessage = "Price is required")]
+    [Range(0.01, 100.00, ErrorMessage = "Price must be between €0.01 and €100.00")]
     [DataType(DataType.Currency)]
     public decimal Price { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Type of meal is required")]
     [Display(Name = "Type of Meal")]
     public MealType MealType { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "At least one product is required")]
     [MinLength(1, ErrorMessage = "At least one product is required")]
     [Display(Name = "Example Products")]
     public List<string> ExampleProducts { get; set; } = new();
-}
 
-public class FutureDateAttribute : ValidationAttribute
-{
-    public override bool IsValid(object? value)
+    public class FutureDateAttribute : ValidationAttribute
     {
-        if (value is DateTime dateTime)
+        public override bool IsValid(object? value)
         {
-            return dateTime > DateTime.Now;
+            if (value is DateTime dateTime)
+            {
+                return dateTime > DateTime.Now;
+            }
+            return false;
         }
-        return false;
     }
 }

@@ -35,33 +35,37 @@ public class PackageManagementController : Controller
         if (user == null) return Challenge();
 
         var packages = await _packageRepository.GetAllAsync();
-        
-        var viewModels = packages.Select(async p =>
-        {
-            var student = p.Reservation?.StudentNumber != null 
-                ? await _studentService.GetStudentByNumberAsync(p.Reservation.StudentNumber)
-                : null;
+        var packageViewModels = new List<PackageManagementViewModel>();
 
-            return new PackageManagementViewModel
+        foreach (var package in packages)
+        {
+            Student? student = null;
+            if (package.Reservation?.StudentNumber != null)
             {
-                Id = p.Id,
-                Name = p.Name,
-                City = p.City,
-                CafeteriaLocation = p.CafeteriaLocation,
-                PickupDateTime = p.PickupDateTime,
-                LastReservationDateTime = p.LastReservationDateTime,
-                IsAdultOnly = p.IsAdultOnly,
-                Price = p.Price,
-                MealType = p.MealType,
-                Products = p.Products.Select(prod => prod.Name).ToList(),
-                IsReserved = p.Reservation != null,
-                IsPickedUp = p.Reservation?.IsPickedUp ?? false,
+                student = await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber);
+            }
+
+            var viewModel = new PackageManagementViewModel
+            {
+                Id = package.Id,
+                Name = package.Name,
+                City = package.City,
+                CafeteriaLocation = package.CafeteriaLocation,
+                PickupDateTime = package.PickupDateTime,
+                LastReservationDateTime = package.LastReservationDateTime,
+                IsAdultOnly = package.IsAdultOnly,
+                Price = package.Price,
+                MealType = package.MealType,
+                Products = package.Products.Select(prod => prod.Name).ToList(),
+                IsReserved = package.Reservation != null,
+                IsPickedUp = package.Reservation?.IsPickedUp ?? false,
                 ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null
             };
-        });
 
-        var items = await Task.WhenAll(viewModels);
-        var finalViewModels = items.AsQueryable();
+            packageViewModels.Add(viewModel);
+        }
+
+        var finalViewModels = packageViewModels.AsQueryable();
 
         if (cityFilter.HasValue)
             finalViewModels = finalViewModels.Where(p => p.City == cityFilter);
@@ -92,7 +96,8 @@ public class PackageManagementController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
-        if (string.IsNullOrEmpty(user.CafeteriaLocation) || !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
+        if (string.IsNullOrEmpty(user.CafeteriaLocation) || 
+            !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
         {
             TempData["Error"] = "Your account is not properly configured for cafeteria management.";
             return RedirectToAction("Index", "Home");
@@ -119,13 +124,24 @@ public class PackageManagementController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreatePackageViewModel model)
     {
+        // Remove any empty product entries
+        model.ExampleProducts = model.ExampleProducts
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .ToList();
+
+        if (model.ExampleProducts.Count == 0)
+        {
+            ModelState.AddModelError("ExampleProducts", "At least one product is required");
+        }
+
         if (!ModelState.IsValid)
             return View(model);
 
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
-        if (string.IsNullOrEmpty(user.CafeteriaLocation) || !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
+        if (string.IsNullOrEmpty(user.CafeteriaLocation) || 
+            !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
         {
             ModelState.AddModelError("", "Your account is not properly configured for cafeteria management.");
             return View(model);
@@ -196,12 +212,15 @@ public class PackageManagementController : Controller
             return NotFound();
 
         package.Reservation.IsNoShow = true;
-        
-        // Update the student's no-show count
-        await _studentService.UpdateNoShowCountAsync(
-            package.Reservation.StudentNumber, 
-            (await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber))?.NoShowCount + 1 ?? 1);
-            
+
+        var student = await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber);
+        if (student != null)
+        {
+            await _studentService.UpdateNoShowCountAsync(
+                package.Reservation.StudentNumber,
+                student.NoShowCount + 1);
+        }
+
         await _packageRepository.UpdateAsync(package);
 
         TempData["Success"] = "Package marked as no-show.";

@@ -1,0 +1,96 @@
+name: Build and deploy ASP.Net Core app to Azure Web App - meal-reservation-avans
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+env:
+  DOTNET_VERSION: '8.x'
+  AZURE_WEBAPP_NAME: 'meal-reservation-avans'
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          
+      - name: Install dependencies
+        run: dotnet restore
+        
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+        
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+        
+      - name: Publish WebApp
+        run: dotnet publish WebApp/WebApp.csproj -c Release -o ./publish
+        
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 9
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
+    permissions:
+      id-token: write
+      contents: read
+      statuses: write
+      
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+          
+      - name: Display structure of downloaded files
+        run: ls -R ./publish
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2F0171FB73B4485FA31D713CB3044A96 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_FBEA89CE835D4962B86EF3230697404B }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3862E048FFA34CE7AAF6ECF1D026ACEB }}
+          
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: 'Production'
+          package: ./publish
+          
+      - name: Publish Deployment Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const description = '${{ job.status }}' === 'success' 
+              ? '✅ Deployment successful' 
+              : '❌ Deployment failed';
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: '${{ job.status }}' === 'success' ? 'success' : 'failure',
+              description: description,
+              context: 'Deployment',
+              target_url: '${{ steps.deploy-to-webapp.outputs.webapp-url }}'
+            });

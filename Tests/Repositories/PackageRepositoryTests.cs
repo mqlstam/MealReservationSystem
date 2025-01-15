@@ -3,6 +3,7 @@ using Domain.Enums;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 using Tests.Helpers;
+using Moq;
 
 namespace Tests.Repositories;
 
@@ -10,11 +11,13 @@ public class PackageRepositoryTests
 {
     private readonly ApplicationDbContext _context;
     private readonly PackageRepository _repository;
+    private readonly Mock<IStudentService> _mockStudentService;
 
     public PackageRepositoryTests()
     {
         _context = TestDbContext.Create();
-        _repository = new PackageRepository(_context);
+        _mockStudentService = new Mock<IStudentService>();
+        _repository = new PackageRepository(_context, _mockStudentService.Object);
     }
 
     [Fact]
@@ -86,6 +89,10 @@ public class PackageRepositoryTests
 
         _context.Packages.AddRange(futurePackage, pastPackage, reservedPackage);
         await _context.SaveChangesAsync();
+
+        // Set up mock student service
+        _mockStudentService.Setup(s => s.GetStudentByNumberAsync(It.IsAny<string>()))
+            .ReturnsAsync(student);
 
         // Act
         var availablePackages = await _repository.GetAvailablePackagesAsync();

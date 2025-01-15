@@ -23,7 +23,8 @@ public class ReservationController : Controller
         _userManager = userManager;
     }
 
-    public async Task<IActionResult> Available(City? cityFilter, MealType? typeFilter, decimal? maxPrice)
+    [HttpGet]
+    public async Task<IActionResult> Available([FromQuery] City? cityFilter, [FromQuery] MealType? typeFilter, [FromQuery] decimal? maxPriceFilter)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
@@ -32,11 +33,17 @@ public class ReservationController : Controller
         {
             CityFilter = cityFilter,
             TypeFilter = typeFilter,
-            MaxPriceFilter = maxPrice
+            MaxPriceFilter = maxPriceFilter
         };
 
         var packages = await _packageViewService.GetAvailablePackagesAsync(user.Id, filter);
         
+        // Apply max price filter in memory if specified
+        if (maxPriceFilter.HasValue)
+        {
+            packages = packages.Where(p => p.Price <= maxPriceFilter.Value).ToList();
+        }
+
         var model = new AvailablePackagesViewModel
         {
             Packages = packages.Select(p => new AvailablePackageItem
@@ -56,7 +63,7 @@ public class ReservationController : Controller
             }).ToList(),
             CityFilter = cityFilter,
             TypeFilter = typeFilter,
-            MaxPriceFilter = maxPrice
+            MaxPriceFilter = maxPriceFilter // Make sure to pass the filter back to the view
         };
 
         return View(model);

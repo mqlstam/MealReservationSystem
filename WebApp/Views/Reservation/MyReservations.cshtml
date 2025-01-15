@@ -14,7 +14,8 @@
         </div>
     }
 
-    @if (Model.NoShowCount > 0)
+    <!-- This block shows the current number of no-shows for the student -->
+    @if (Model.NoShowCount >= 0)
     {
         <div class="alert @(Model.NoShowCount >= 2 ? "alert-danger" : "alert-warning")">
             <i class="bi bi-exclamation-triangle"></i>

@@ -1,0 +1,9 @@
+<!-- _ServerTimePartial.cshtml -->
+@{
+    // This simply displays the current server time in a small badge
+    var serverTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+}
+
+<span class="badge bg-secondary">
+    Server Time: @serverTime
+</span>

@@ -49,9 +49,15 @@
     </main>
 </div>
 
+
 <footer class="border-top footer text-muted">
-    <div class="container">
-        &copy; 2025 - Meal Reservation
+    <div class="container d-flex justify-content-between">
+        <div>
+            &copy; 2025 - Meal Reservation
+        </div>
+        <div>
+            @await Html.PartialAsync("_ServerTimePartial")
+        </div>
     </div>
 </footer>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>

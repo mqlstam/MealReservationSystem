@@ -57,6 +57,7 @@ public class PackageManagementController : Controller
                 Price = package.Price,
                 MealType = package.MealType,
                 Products = package.Products.Select(prod => prod.Name).ToList(),
+                ExampleProducts = package.Products.Select(prod => prod.Name).ToList(),
                 IsReserved = package.Reservation != null,
                 IsPickedUp = package.Reservation?.IsPickedUp ?? false,
                 ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null

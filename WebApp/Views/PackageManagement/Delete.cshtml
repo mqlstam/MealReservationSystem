@@ -1,0 +1,19 @@
+@model WebApp.Models.Package.PackageManagementViewModel
+
+@{
+    ViewData["Title"] = "Delete Package";
+}
+
+<h1>Delete Package</h1>
+
+<div class="alert alert-danger">
+    <p>Are you sure you want to delete the following package?</p>
+    <p><strong>@Model.Name</strong> - @Model.MealType</p>
+</div>
+
+<div>
+    <form asp-action="DeleteConfirmed" method="post" asp-route-id="@Model.Id">
+        <input type="submit" value="Delete" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

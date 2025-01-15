@@ -1,8 +1,8 @@
 @model WebApp.Models.Package.PackageListViewModel
 
 @{
-ViewData["Title"] = "Manage Packages";
-bool showOnlyMyCafeteria = ViewData["ShowOnlyMyCafeteria"] as bool? ?? false;
+    ViewData["Title"] = "Manage Packages";
+    bool showOnlyMyCafeteria = ViewData["ShowOnlyMyCafeteria"] as bool? ?? false;
 }
 
 <div class="container">
@@ -10,18 +10,18 @@ bool showOnlyMyCafeteria = ViewData["ShowOnlyMyCafeteria"] as bool? ?? false;
 
     @if (TempData["Success"] != null)
     {
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        @TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     }
 
     @if (TempData["Error"] != null)
     {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @TempData["Error"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     }
 
     <div class="mb-4">
@@ -92,90 +92,112 @@ bool showOnlyMyCafeteria = ViewData["ShowOnlyMyCafeteria"] as bool? ?? false;
 
     @if (!Model.Packages.Any())
     {
-    <div class="alert alert-info">
-        No packages found matching your criteria.
-    </div>
+        <div class="alert alert-info">
+            No packages found matching your criteria.
+        </div>
     }
     else
     {
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Price</th>
-                <th>Pickup Time</th>
-                <th>Last Reservation</th>
-                <th>Status</th>
-                <th>Actions</th>  <!-- Action column -->
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var package in Model.Packages)
-            {
-            <tr>
-                <td>@package.Name</td>
-                <td>@package.MealType</td>
-                <td>@package.Price.ToString("C")</td>
-                <td>@package.PickupDateTime.ToString("g")</td>
-                <td>@package.LastReservationDateTime.ToString("g")</td>
-                <td>
-                    @if (package.IsPickedUp)
-                    {
-                    <span class="badge bg-success">Picked Up</span>
-                    }
-                    else if (package.IsReserved)
-                    {
-                    <span class="badge bg-primary">Reserved</span>
-                    }
-                    else if (package.HasExpired)
-                    {
-                    <span class="badge bg-danger">Expired</span>
-                    }
-                    else
-                    {
-                    <span class="badge bg-info">Available</span>
-                    }
-                </td>
-                <td>
-                    <!-- Edit/Delete only if package is not reserved & hasn't expired -->
-                    @if (!package.IsReserved && !package.HasExpired)
-                    {
-                    <a asp-action="Edit" asp-route-id="@package.Id" class="btn btn-warning btn-sm me-2">Edit</a>
-                    <a asp-action="Delete" asp-route-id="@package.Id" class="btn btn-danger btn-sm me-2">Delete</a>
-                    }
-                    <!-- If package IS reserved but not yet picked up and hasn't expired, show MarkAsPickedUp -->
-                    @if (package.IsReserved && !package.IsPickedUp && !package.HasExpired)
-                    {
-                    <form asp-action="MarkAsPickedUp"
-                          asp-route-id="@package.Id"
-                          method="post"
-                          class="d-inline">
-                        <button type="submit"
-                                class="btn btn-success btn-sm me-2">
-                            Mark Picked Up
-                        </button>
-                    </form>
-                    }
-                    <!-- If package is reserved, not picked up, but is expired, allow Mark No-Show -->
-                    @if (package.IsReserved && !package.IsPickedUp && package.HasExpired)
-                    {
-                    <form asp-action="MarkAsNoShow"
-                          asp-route-id="@package.Id"
-                          method="post"
-                          class="d-inline">
-                        <button type="submit"
-                                class="btn btn-warning btn-sm me-2">
-                            Mark No-Show
-                        </button>
-                    </form>
-                    }
-                </td>
-            </tr>
-            }
-            </tbody>
-        </table>
-    </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Price</th>
+                        <th>Pickup Time</th>
+                        <th>Last Reservation</th>
+                        <th>Status</th>
+                        <th>Reserved By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var package in Model.Packages)
+                {
+                    <tr>
+                        <td>@package.Name</td>
+                        <td>@package.MealType</td>
+                        <td>@package.Price.ToString("C")</td>
+                        <td>@package.PickupDateTime.ToString("g")</td>
+                        <td>@package.LastReservationDateTime.ToString("g")</td>
+                        <td>
+                            @switch (package.Status)
+                            {
+                                case "No-Show":
+                                    <span class="badge bg-danger">No-Show</span>;
+                                    break;
+                                case "Picked Up":
+                                    <span class="badge bg-success">Picked Up</span>;
+                                    break;
+                                case "Expired":
+                                    <span class="badge bg-secondary">Expired</span>;
+                                    break;
+                                case "Reserved":
+                                    <span class="badge bg-primary">Reserved</span>;
+                                    break;
+                                default:
+                                    <span class="badge bg-info">Available</span>;
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            @package.ReservedBy
+                        </td>
+                        <td>
+                            @* 1) Edit/Delete only if package is still "Available" *@
+                            @if (package.Status == "Available")
+                            {
+                                <a asp-action="Edit" asp-route-id="@package.Id" class="btn btn-warning btn-sm me-1">Edit</a>
+                                <a asp-action="Delete" asp-route-id="@package.Id" class="btn btn-danger btn-sm me-1">Delete</a>
+                            }
+                            @* 2) Mark Picked Up if it’s "Reserved" but not picked up, and time not yet past? 
+                                  Could do so if you want. We'll just keep as is. *@
+                            @if (package.IsReserved && !package.IsPickedUp && !package.IsNoShow && package.PickupDateTime > DateTime.Now)
+                            {
+                                <form asp-action="MarkAsPickedUp"
+                                      asp-route-id="@package.Id"
+                                      method="post"
+                                      class="d-inline">
+                                    <button type="submit"
+                                            class="btn btn-success btn-sm me-1">
+                                        Picked Up
+                                    </button>
+                                </form>
+                            }
+
+                            @* 3) Mark No-Show if time is past and not already a no-show/picked up *@
+                            @if (package.IsReserved && !package.IsNoShow && !package.IsPickedUp && package.PickupDateTime < DateTime.Now)
+                            {
+                                <form asp-action="MarkAsNoShow"
+                                      asp-route-id="@package.Id"
+                                      method="post"
+                                      class="d-inline">
+                                    <button type="submit"
+                                            class="btn btn-warning btn-sm me-1">
+                                        Mark No-Show
+                                    </button>
+                                </form>
+                            }
+
+                            @* 4) Undo No-Show button if currently no-show *@
+                            @if (package.IsNoShow)
+                            {
+                                <form asp-action="UndoNoShow"
+                                      asp-route-id="@package.Id"
+                                      method="post"
+                                      class="d-inline">
+                                    <button type="submit"
+                                            class="btn btn-secondary btn-sm me-1">
+                                        Undo No-Show
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
     }
 </div>

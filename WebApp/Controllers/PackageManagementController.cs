@@ -39,7 +39,7 @@ namespace WebApp.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            // Get all packages
+            // Get all packages from repository
             var packages = await _packageRepository.GetAllAsync();
             var packageViewModels = new List<PackageManagementViewModel>();
 
@@ -50,7 +50,10 @@ namespace WebApp.Controllers
                     ? await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber)
                     : null;
 
-                var viewModel = new PackageManagementViewModel
+                // Distinguish "Expired" vs. "No-Show"
+                // "Expired": never reserved, LastReservationDateTime < now
+                // "No-Show": was reserved, pickup time < now, not picked up => repository sets .IsNoShow or it’s set manually
+                var vm = new PackageManagementViewModel
                 {
                     Id = package.Id,
                     Name = package.Name,
@@ -64,11 +67,14 @@ namespace WebApp.Controllers
                     Products = package.Products.Select(prod => prod.Name).ToList(),
                     IsReserved = package.Reservation != null,
                     IsPickedUp = package.Reservation?.IsPickedUp ?? false,
+                    IsNoShow = package.Reservation?.IsNoShow ?? false,
                     ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null
                 };
-                packageViewModels.Add(viewModel);
+
+                packageViewModels.Add(vm);
             }
 
+            // Filter only my cafeteria if the user wants that
             if (showOnlyMyCafeteria && !string.IsNullOrEmpty(user.CafeteriaLocation))
             {
                 if (Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var myLocation))
@@ -79,7 +85,7 @@ namespace WebApp.Controllers
                 }
             }
 
-            // Apply filters
+            // Apply additional filters
             var finalViewModels = packageViewModels.AsQueryable();
 
             if (cityFilter.HasValue)
@@ -91,10 +97,11 @@ namespace WebApp.Controllers
             if (maxPrice.HasValue)
                 finalViewModels = finalViewModels.Where(p => p.Price <= maxPrice.Value);
 
+            // If we do NOT want to see Expired packages, exclude them
             if (!showExpired)
-                finalViewModels = finalViewModels.Where(p => !p.HasExpired);
+                finalViewModels = finalViewModels.Where(p => !p.IsExpired);
 
-            // Order by pickup time
+            // Sort ascending by pickup time
             var orderedPackages = finalViewModels.OrderBy(p => p.PickupDateTime).ToList();
 
             var model = new PackageListViewModel
@@ -107,7 +114,6 @@ namespace WebApp.Controllers
             };
 
             ViewData["ShowOnlyMyCafeteria"] = showOnlyMyCafeteria;
-
             return View(model);
         }
 
@@ -145,7 +151,7 @@ namespace WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreatePackageViewModel model)
         {
-            // Remove any empty product entries
+            // Clean up blank product lines
             model.ExampleProducts = model.ExampleProducts
                 .Where(p => !string.IsNullOrWhiteSpace(p))
                 .ToList();
@@ -175,7 +181,7 @@ namespace WebApp.Controllers
                 return View(model);
             }
 
-            // Check if hot meals are offered
+            // For hot meals, check if location offers them
             if (model.MealType == MealType.HotMeal && !cafeteria.OffersHotMeals)
             {
                 ModelState.AddModelError("MealType", "Your location does not offer hot meals.");
@@ -344,7 +350,8 @@ namespace WebApp.Controllers
                 MealType = package.MealType,
                 Products = package.Products.Select(p => p.Name).ToList(),
                 IsReserved = package.Reservation != null,
-                IsPickedUp = package.Reservation?.IsPickedUp ?? false
+                IsPickedUp = package.Reservation?.IsPickedUp ?? false,
+                IsNoShow = package.Reservation?.IsNoShow ?? false
             };
 
             // We'll display a simple confirmation page
@@ -398,6 +405,12 @@ namespace WebApp.Controllers
             if (package?.Reservation == null)
                 return NotFound();
 
+            if (package.Reservation.IsNoShow)
+            {
+                TempData["Error"] = "Already marked as no-show.";
+                return RedirectToAction(nameof(Index));
+            }
+
             package.Reservation.IsNoShow = true;
 
             var student = await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber);
@@ -411,6 +424,38 @@ namespace WebApp.Controllers
             await _packageRepository.UpdateAsync(package);
 
             TempData["Success"] = "Package marked as no-show.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UndoNoShow(int id)
+        {
+            // This new action allows overriding the no-show if it was a mistake
+            var package = await _packageRepository.GetByIdAsync(id);
+            if (package?.Reservation == null)
+                return NotFound();
+
+            if (!package.Reservation.IsNoShow)
+            {
+                TempData["Error"] = "This package is not marked as no-show.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            package.Reservation.IsNoShow = false;
+
+            // Decrement the student's no-show count by one
+            var student = await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber);
+            if (student != null && student.NoShowCount > 0)
+            {
+                await _studentService.UpdateNoShowCountAsync(
+                    package.Reservation.StudentNumber,
+                    student.NoShowCount - 1);
+            }
+
+            await _packageRepository.UpdateAsync(package);
+
+            TempData["Success"] = "No-show status undone successfully.";
             return RedirectToAction(nameof(Index));
         }
     }

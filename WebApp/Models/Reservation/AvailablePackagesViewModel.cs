@@ -24,4 +24,24 @@ public class AvailablePackageItem
     public List<string> ExampleProducts { get; set; } = new();
     public bool CanReserve { get; set; }
     public string? ReservationBlockReason { get; set; }
+
+    public bool HasExpired => DateTime.Now > LastReservationDateTime;
+    public bool PickupExpired => DateTime.Now > PickupDateTime;
+    
+    public string StatusBadgeClass => GetStatusBadgeClass();
+    public string StatusText => GetStatusText();
+    
+    private string GetStatusBadgeClass()
+    {
+        if (HasExpired) return "bg-danger";
+        if (PickupExpired) return "bg-warning";
+        return "bg-success";
+    }
+    
+    private string GetStatusText()
+    {
+        if (HasExpired) return "Reservation Expired";
+        if (PickupExpired) return "Pickup Time Passed";
+        return "Available";
+    }
 }

@@ -62,9 +62,10 @@
             @foreach (var package in Model.Packages)
             {
                 <div class="col">
-                    <div class="card h-100">
-                        <div class="card-header">
+                    <div class="card h-100 @(package.HasExpired ? "border-danger" : "")">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">@package.Name</h5>
+                            <span class="badge @package.StatusBadgeClass">@package.StatusText</span>
                         </div>
                         <div class="card-body">
                             <p class="card-text">
@@ -92,16 +93,32 @@
                                 </ul>
                             </div>
 
-                            @if (package.CanReserve)
+                            @if (!package.HasExpired && !package.PickupExpired)
                             {
-                                <form asp-action="Reserve" asp-controller="Package" asp-route-id="@package.Id" method="post">
-                                    <button type="submit" class="btn btn-primary w-100">Reserve Package</button>
-                                </form>
+                                @if (package.CanReserve)
+                                {
+                                    <form asp-action="Reserve" asp-controller="Package" asp-route-id="@package.Id" method="post">
+                                        <button type="submit" class="btn btn-primary w-100">Reserve Package</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger">
+                                        @package.ReservationBlockReason
+                                    </div>
+                                }
                             }
                             else
                             {
                                 <div class="alert alert-danger">
-                                    @package.ReservationBlockReason
+                                    @if (package.HasExpired)
+                                    {
+                                        <span>Reservation period has ended</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Pickup time has passed</span>
+                                    }
                                 </div>
                             }
                         </div>
@@ -120,5 +137,10 @@
             document.querySelector('input[name="MaxPriceFilter"]').value = '';
             document.getElementById('filterForm').submit();
         }
+        
+        // Auto-refresh the page every minute to keep statuses current
+        setTimeout(function() {
+            location.reload();
+        }, 60000);
     </script>
 }

@@ -29,92 +29,90 @@ namespace WebApp.Controllers
             _userManager = userManager;
         }
 
-  public async Task<IActionResult> Index(
-    bool showOnlyMyCafeteria = false, 
-    City? cityFilter = null,
-    MealType? typeFilter = null,
-    decimal? maxPrice = null,
-    bool showExpired = false)
-{
-    var user = await _userManager.GetUserAsync(User);
-    if (user == null) return Challenge();
-
-    // Get all packages from repository
-    var packages = await _packageRepository.GetAllAsync();
-    var packageViewModels = new List<PackageManagementViewModel>();
-
-    // Convert domain entities to view models
-    foreach (var package in packages)
-    {
-        var student = (package.Reservation?.StudentNumber != null)
-            ? await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber)
-            : null;
-
-        var vm = new PackageManagementViewModel
+        public async Task<IActionResult> Index(
+            bool showOnlyMyCafeteria = false,
+            City? cityFilter = null,
+            MealType? typeFilter = null,
+            decimal? maxPrice = null,
+            bool showExpired = false)
         {
-            Id = package.Id,
-            Name = package.Name,
-            City = package.City,
-            CafeteriaLocation = package.CafeteriaLocation,
-            PickupDateTime = package.PickupDateTime,
-            LastReservationDateTime = package.LastReservationDateTime,
-            IsAdultOnly = package.IsAdultOnly,
-            Price = package.Price,
-            MealType = package.MealType,
-            Products = package.Products.Select(prod => prod.Name).ToList(),
-            IsReserved = package.Reservation != null,
-            IsPickedUp = package.Reservation?.IsPickedUp ?? false,
-            IsNoShow = package.Reservation?.IsNoShow ?? false,
-            ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null
-        };
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
 
-        packageViewModels.Add(vm);
-    }
+            // Get all packages from repository
+            var packages = await _packageRepository.GetAllAsync();
+            var packageViewModels = new List<PackageManagementViewModel>();
 
-    // Filter only my cafeteria if the user wants that
-    if (showOnlyMyCafeteria && !string.IsNullOrEmpty(user.CafeteriaLocation))
-    {
-        if (Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var myLocation))
-        {
-            packageViewModels = packageViewModels
-                .Where(p => p.CafeteriaLocation == myLocation)
-                .ToList();
+            // Convert domain entities to view models
+            foreach (var package in packages)
+            {
+                var student = (package.Reservation?.StudentNumber != null)
+                    ? await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber)
+                    : null;
+
+                var vm = new PackageManagementViewModel
+                {
+                    Id = package.Id,
+                    Name = package.Name,
+                    City = package.City,
+                    CafeteriaLocation = package.CafeteriaLocation,
+                    PickupDateTime = package.PickupDateTime,
+                    LastReservationDateTime = package.LastReservationDateTime,
+                    IsAdultOnly = package.IsAdultOnly,
+                    Price = package.Price,
+                    MealType = package.MealType,
+                    Products = package.Products.Select(prod => prod.Name).ToList(),
+                    IsReserved = package.Reservation != null,
+                    IsPickedUp = package.Reservation?.IsPickedUp ?? false,
+                    IsNoShow = package.Reservation?.IsNoShow ?? false,
+                    ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null
+                };
+
+                packageViewModels.Add(vm);
+            }
+
+            // Filter only my cafeteria if requested
+            if (showOnlyMyCafeteria && !string.IsNullOrEmpty(user.CafeteriaLocation))
+            {
+                if (Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var myLocation))
+                {
+                    packageViewModels = packageViewModels
+                        .Where(p => p.CafeteriaLocation == myLocation)
+                        .ToList();
+                }
+            }
+
+            // Apply additional filters
+            var finalViewModels = packageViewModels.AsQueryable();
+
+            if (cityFilter.HasValue)
+                finalViewModels = finalViewModels.Where(p => p.City == cityFilter.Value);
+
+            if (typeFilter.HasValue)
+                finalViewModels = finalViewModels.Where(p => p.MealType == typeFilter.Value);
+
+            if (maxPrice.HasValue)
+                finalViewModels = finalViewModels.Where(p => p.Price <= maxPrice.Value);
+
+            if (!showExpired)
+                finalViewModels = finalViewModels.Where(p => !p.IsExpired);
+
+            var orderedPackages = finalViewModels.OrderBy(p => p.PickupDateTime).ToList();
+
+            var model = new PackageListViewModel
+            {
+                Packages = orderedPackages,
+                CityFilter = cityFilter,
+                TypeFilter = typeFilter,
+                MaxPriceFilter = maxPrice,
+                ShowExpired = showExpired
+            };
+
+            ViewData["ShowOnlyMyCafeteria"] = showOnlyMyCafeteria;
+            return View(model);
         }
-    }
 
-    // Apply additional filters
-    var finalViewModels = packageViewModels.AsQueryable();
-
-    if (cityFilter.HasValue)
-        finalViewModels = finalViewModels.Where(p => p.City == cityFilter.Value);
-
-    if (typeFilter.HasValue)
-        finalViewModels = finalViewModels.Where(p => p.MealType == typeFilter.Value);
-
-    // Apply max price filter in memory
-    if (maxPrice.HasValue)
-        finalViewModels = finalViewModels.Where(p => p.Price <= maxPrice.Value);
-
-    // If we do NOT want to see Expired packages, exclude them
-    if (!showExpired)
-        finalViewModels = finalViewModels.Where(p => !p.IsExpired);
-
-    // Sort ascending by pickup time
-    var orderedPackages = finalViewModels.OrderBy(p => p.PickupDateTime).ToList();
-
-    var model = new PackageListViewModel
-    {
-        Packages = orderedPackages,
-        CityFilter = cityFilter,
-        TypeFilter = typeFilter,
-        MaxPriceFilter = maxPrice,
-        ShowExpired = showExpired
-    };
-
-    ViewData["ShowOnlyMyCafeteria"] = showOnlyMyCafeteria;
-    return View(model);
-}
-        // GET: PackageManagement/Create
+        [HttpGet]
         public async Task<IActionResult> Create()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -137,27 +135,18 @@ namespace WebApp.Controllers
             var viewModel = new CreatePackageViewModel
             {
                 City = cafeteria.City,
-                CafeteriaLocation = cafeteria.Location
+                CafeteriaLocation = cafeteria.Location,
+                PickupDateTime = DateTime.Now.AddHours(1),
+                LastReservationDateTime = DateTime.Now.AddMinutes(30)
             };
 
             return View(viewModel);
         }
 
-        // POST: PackageManagement/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreatePackageViewModel model)
         {
-            // Clean up blank product lines
-            model.ExampleProducts = model.ExampleProducts
-                .Where(p => !string.IsNullOrWhiteSpace(p))
-                .ToList();
-
-            if (model.ExampleProducts.Count == 0)
-            {
-                ModelState.AddModelError("ExampleProducts", "At least one product is required");
-            }
-
             if (!ModelState.IsValid)
                 return View(model);
 
@@ -175,6 +164,17 @@ namespace WebApp.Controllers
             if (cafeteria == null)
             {
                 ModelState.AddModelError("", "Unable to find your cafeteria location.");
+                return View(model);
+            }
+
+            // Clean up blank product lines
+            model.ExampleProducts = model.ExampleProducts
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+
+            if (model.ExampleProducts.Count == 0)
+            {
+                ModelState.AddModelError("ExampleProducts", "At least one product is required");
                 return View(model);
             }
 
@@ -213,27 +213,31 @@ namespace WebApp.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: PackageManagement/Edit
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
+            // Get the current user
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Challenge();
+            if (user == null)
+            {
+                return Challenge();
+            }
 
+            // Get the package
             var package = await _packageRepository.GetByIdAsync(id);
             if (package == null)
             {
-                TempData["Error"] = "Package not found.";
-                return RedirectToAction(nameof(Index));
+                return NotFound();
             }
 
-            // If package has a reservation, disallow editing
+            // Check if package is already reserved
             if (package.Reservation != null)
             {
                 TempData["Error"] = "Cannot edit a package that is already reserved.";
                 return RedirectToAction(nameof(Index));
             }
 
+            // Create the view model
             var viewModel = new CreatePackageViewModel
             {
                 Name = package.Name,
@@ -244,27 +248,17 @@ namespace WebApp.Controllers
                 IsAdultOnly = package.IsAdultOnly,
                 Price = package.Price,
                 MealType = package.MealType,
-                ExampleProducts = package.Products.Select(p => p.Name).ToList()
+                ExampleProducts = package.Products?.Select(p => p.Name).ToList() ?? new List<string>()
             };
 
-            ViewBag.PackageId = package.Id;
+            ViewBag.PackageId = id;
             return View(viewModel);
         }
 
-        // POST: PackageManagement/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, CreatePackageViewModel model)
         {
-            model.ExampleProducts = model.ExampleProducts
-                .Where(p => !string.IsNullOrWhiteSpace(p))
-                .ToList();
-
-            if (model.ExampleProducts.Count == 0)
-            {
-                ModelState.AddModelError("ExampleProducts", "At least one product is required");
-            }
-
             if (!ModelState.IsValid)
             {
                 ViewBag.PackageId = id;
@@ -274,14 +268,43 @@ namespace WebApp.Controllers
             var package = await _packageRepository.GetByIdAsync(id);
             if (package == null)
             {
-                TempData["Error"] = "Package not found.";
-                return RedirectToAction(nameof(Index));
+                return NotFound(new { message = "Package not found." });
             }
 
             if (package.Reservation != null)
             {
                 TempData["Error"] = "Cannot edit a package that is already reserved.";
                 return RedirectToAction(nameof(Index));
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            var cafeteria = await _cafeteriaRepository.GetByLocationAsync(package.CafeteriaLocation);
+            if (cafeteria == null)
+            {
+                TempData["Error"] = "Unable to find cafeteria location.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Clean up blank product lines
+            model.ExampleProducts = model.ExampleProducts
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+
+            if (model.ExampleProducts.Count == 0)
+            {
+                ModelState.AddModelError("ExampleProducts", "At least one product is required");
+                ViewBag.PackageId = id;
+                return View(model);
+            }
+
+            // For hot meals, check if location offers them
+            if (model.MealType == MealType.HotMeal && !cafeteria.OffersHotMeals)
+            {
+                ModelState.AddModelError("MealType", "Your location does not offer hot meals.");
+                ViewBag.PackageId = id;
+                return View(model);
             }
 
             if (model.LastReservationDateTime >= model.PickupDateTime)
@@ -309,31 +332,25 @@ namespace WebApp.Controllers
             }
 
             await _packageRepository.UpdateAsync(package);
-
             TempData["Success"] = "Package updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: PackageManagement/Delete
         [HttpGet]
         public async Task<IActionResult> Delete(int id)
         {
             var package = await _packageRepository.GetByIdAsync(id);
             if (package == null)
             {
-                TempData["Error"] = "Package not found.";
-                return RedirectToAction(nameof(Index));
+                return NotFound(new { message = "Package not found." });
             }
 
-            // If there's a reservation, do not allow deletion
             if (package.Reservation != null)
             {
                 TempData["Error"] = "Cannot delete a package that is already reserved.";
                 return RedirectToAction(nameof(Index));
             }
 
-            // Convert domain Package to a view model so that
-            // the view can properly render the fields.
             var viewModel = new PackageManagementViewModel
             {
                 Id = package.Id,
@@ -351,12 +368,9 @@ namespace WebApp.Controllers
                 IsNoShow = package.Reservation?.IsNoShow ?? false
             };
 
-            // We'll display a simple confirmation page
             return View(viewModel);
         }
 
-
-// Keep only this action
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -364,11 +378,9 @@ namespace WebApp.Controllers
             var package = await _packageRepository.GetByIdAsync(id);
             if (package == null)
             {
-                TempData["Error"] = "Package not found.";
-                return RedirectToAction(nameof(Index));
+                return NotFound(new { message = "Package not found." });
             }
 
-            // Check again for reservations
             if (package.Reservation != null)
             {
                 TempData["Error"] = "Cannot delete a package that is already reserved.";
@@ -386,7 +398,9 @@ namespace WebApp.Controllers
         {
             var package = await _packageRepository.GetByIdAsync(id);
             if (package?.Reservation == null)
-                return NotFound();
+            {
+                return NotFound(new { message = "Package or reservation not found." });
+            }
 
             package.Reservation.IsPickedUp = true;
             await _packageRepository.UpdateAsync(package);
@@ -401,7 +415,9 @@ namespace WebApp.Controllers
         {
             var package = await _packageRepository.GetByIdAsync(id);
             if (package?.Reservation == null)
-                return NotFound();
+            {
+                return NotFound(new { message = "Package or reservation not found." });
+            }
 
             if (package.Reservation.IsNoShow)
             {
@@ -429,10 +445,11 @@ namespace WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UndoNoShow(int id)
         {
-            // This new action allows overriding the no-show if it was a mistake
             var package = await _packageRepository.GetByIdAsync(id);
             if (package?.Reservation == null)
-                return NotFound();
+            {
+                return NotFound(new { message = "Package or reservation not found." });
+            }
 
             if (!package.Reservation.IsNoShow)
             {

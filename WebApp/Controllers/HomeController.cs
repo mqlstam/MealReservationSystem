@@ -28,4 +28,10 @@ public class HomeController : Controller
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
+
+    public IActionResult DatabaseError()
+    {
+        Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        return View("DatabaseError");
+    }
 }

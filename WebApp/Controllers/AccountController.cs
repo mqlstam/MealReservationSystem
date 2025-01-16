@@ -125,6 +125,17 @@ namespace WebApp.Controllers
 
                 if (result.Succeeded)
                 {
+                    // Get the user to check their role
+                    var user = await _userManager.FindByEmailAsync(model.Email);
+                    if (user != null)
+                    {
+                        var isEmployee = await _userManager.IsInRoleAsync(user, "CafeteriaEmployee");
+                        if (isEmployee)
+                        {
+                            return RedirectToAction("Index", "PackageManagement");
+                        }
+                    }
+            
                     return RedirectToLocal(returnUrl);
                 }
 
@@ -139,7 +150,6 @@ namespace WebApp.Controllers
 
             return View(model);
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()

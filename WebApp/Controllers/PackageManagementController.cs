@@ -29,94 +29,91 @@ namespace WebApp.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(
-            bool showOnlyMyCafeteria = false, 
-            City? cityFilter = null,
-            MealType? typeFilter = null,
-            decimal? maxPrice = null,
-            bool showExpired = false)
+  public async Task<IActionResult> Index(
+    bool showOnlyMyCafeteria = false, 
+    City? cityFilter = null,
+    MealType? typeFilter = null,
+    decimal? maxPrice = null,
+    bool showExpired = false)
+{
+    var user = await _userManager.GetUserAsync(User);
+    if (user == null) return Challenge();
+
+    // Get all packages from repository
+    var packages = await _packageRepository.GetAllAsync();
+    var packageViewModels = new List<PackageManagementViewModel>();
+
+    // Convert domain entities to view models
+    foreach (var package in packages)
+    {
+        var student = (package.Reservation?.StudentNumber != null)
+            ? await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber)
+            : null;
+
+        var vm = new PackageManagementViewModel
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Challenge();
+            Id = package.Id,
+            Name = package.Name,
+            City = package.City,
+            CafeteriaLocation = package.CafeteriaLocation,
+            PickupDateTime = package.PickupDateTime,
+            LastReservationDateTime = package.LastReservationDateTime,
+            IsAdultOnly = package.IsAdultOnly,
+            Price = package.Price,
+            MealType = package.MealType,
+            Products = package.Products.Select(prod => prod.Name).ToList(),
+            IsReserved = package.Reservation != null,
+            IsPickedUp = package.Reservation?.IsPickedUp ?? false,
+            IsNoShow = package.Reservation?.IsNoShow ?? false,
+            ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null
+        };
 
-            // Get all packages from repository
-            var packages = await _packageRepository.GetAllAsync();
-            var packageViewModels = new List<PackageManagementViewModel>();
+        packageViewModels.Add(vm);
+    }
 
-            // Convert domain entities to view models
-            foreach (var package in packages)
-            {
-                var student = (package.Reservation?.StudentNumber != null)
-                    ? await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber)
-                    : null;
-
-                // Distinguish "Expired" vs. "No-Show"
-                // "Expired": never reserved, LastReservationDateTime < now
-                // "No-Show": was reserved, pickup time < now, not picked up => repository sets .IsNoShow or it’s set manually
-                var vm = new PackageManagementViewModel
-                {
-                    Id = package.Id,
-                    Name = package.Name,
-                    City = package.City,
-                    CafeteriaLocation = package.CafeteriaLocation,
-                    PickupDateTime = package.PickupDateTime,
-                    LastReservationDateTime = package.LastReservationDateTime,
-                    IsAdultOnly = package.IsAdultOnly,
-                    Price = package.Price,
-                    MealType = package.MealType,
-                    Products = package.Products.Select(prod => prod.Name).ToList(),
-                    IsReserved = package.Reservation != null,
-                    IsPickedUp = package.Reservation?.IsPickedUp ?? false,
-                    IsNoShow = package.Reservation?.IsNoShow ?? false,
-                    ReservedBy = student != null ? $"{student.FirstName} {student.LastName}" : null
-                };
-
-                packageViewModels.Add(vm);
-            }
-
-            // Filter only my cafeteria if the user wants that
-            if (showOnlyMyCafeteria && !string.IsNullOrEmpty(user.CafeteriaLocation))
-            {
-                if (Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var myLocation))
-                {
-                    packageViewModels = packageViewModels
-                        .Where(p => p.CafeteriaLocation == myLocation)
-                        .ToList();
-                }
-            }
-
-            // Apply additional filters
-            var finalViewModels = packageViewModels.AsQueryable();
-
-            if (cityFilter.HasValue)
-                finalViewModels = finalViewModels.Where(p => p.City == cityFilter.Value);
-
-            if (typeFilter.HasValue)
-                finalViewModels = finalViewModels.Where(p => p.MealType == typeFilter.Value);
-
-            if (maxPrice.HasValue)
-                finalViewModels = finalViewModels.Where(p => p.Price <= maxPrice.Value);
-
-            // If we do NOT want to see Expired packages, exclude them
-            if (!showExpired)
-                finalViewModels = finalViewModels.Where(p => !p.IsExpired);
-
-            // Sort ascending by pickup time
-            var orderedPackages = finalViewModels.OrderBy(p => p.PickupDateTime).ToList();
-
-            var model = new PackageListViewModel
-            {
-                Packages = orderedPackages,
-                CityFilter = cityFilter,
-                TypeFilter = typeFilter,
-                MaxPriceFilter = maxPrice,
-                ShowExpired = showExpired
-            };
-
-            ViewData["ShowOnlyMyCafeteria"] = showOnlyMyCafeteria;
-            return View(model);
+    // Filter only my cafeteria if the user wants that
+    if (showOnlyMyCafeteria && !string.IsNullOrEmpty(user.CafeteriaLocation))
+    {
+        if (Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var myLocation))
+        {
+            packageViewModels = packageViewModels
+                .Where(p => p.CafeteriaLocation == myLocation)
+                .ToList();
         }
+    }
 
+    // Apply additional filters
+    var finalViewModels = packageViewModels.AsQueryable();
+
+    if (cityFilter.HasValue)
+        finalViewModels = finalViewModels.Where(p => p.City == cityFilter.Value);
+
+    if (typeFilter.HasValue)
+        finalViewModels = finalViewModels.Where(p => p.MealType == typeFilter.Value);
+
+    // Apply max price filter in memory
+    if (maxPrice.HasValue)
+        finalViewModels = finalViewModels.Where(p => p.Price <= maxPrice.Value);
+
+    // If we do NOT want to see Expired packages, exclude them
+    if (!showExpired)
+        finalViewModels = finalViewModels.Where(p => !p.IsExpired);
+
+    // Sort ascending by pickup time
+    var orderedPackages = finalViewModels.OrderBy(p => p.PickupDateTime).ToList();
+
+    var model = new PackageListViewModel
+    {
+        Packages = orderedPackages,
+        CityFilter = cityFilter,
+        TypeFilter = typeFilter,
+        MaxPriceFilter = maxPrice,
+        ShowExpired = showExpired
+    };
+
+    ViewData["ShowOnlyMyCafeteria"] = showOnlyMyCafeteria;
+    return View(model);
+}
         // GET: PackageManagement/Create
         public async Task<IActionResult> Create()
         {
@@ -358,7 +355,8 @@ namespace WebApp.Controllers
             return View(viewModel);
         }
 
-        // POST: PackageManagement/Delete
+
+// Keep only this action
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)

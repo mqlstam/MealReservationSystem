@@ -1,193 +1,418 @@
 @model WebApp.Models.Package.CreatePackageViewModel
 @{
-    ViewData["Title"] = "Edit Package";
+ViewData["Title"] = "Edit Package";
 }
 
-<div class="container">
-    <h1>Edit Package</h1>
+<style>
+    .edit-container {
+        min-height: calc(100vh - 180px);
+        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 50%, #fce4ec 100%);
+        padding: 2rem 1rem;
+    }
 
-    <form asp-action="Edit" method="post" id="editPackageForm">
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    .form-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
-        <input type="hidden" name="id" value="@ViewBag.PackageId" />
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
 
-        <div class="row">
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label asp-for="Name" class="form-label"></label>
-                    <input asp-for="Name" class="form-control" />
-                    <span asp-validation-for="Name" class="text-danger"></span>
+    .form-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .section-title {
+        color: #1976d2;
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid #e0e0e0;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
+    }
+
+    .products-container {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .product-input-group {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .remove-product-btn {
+        background: #ffebee;
+        color: #c62828;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .remove-product-btn:hover {
+        background: #ffcdd2;
+    }
+
+    .add-product-btn {
+        background: #e3f2fd;
+        color: #1976d2;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .add-product-btn:hover {
+        background: #bbdefb;
+        transform: translateY(-2px);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, #2196f3, #1976d2);
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        opacity: 0.9;
+    }
+
+    .cancel-btn {
+        background: #e0e0e0;
+        color: #333;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .cancel-btn:hover {
+        background: #d5d5d5;
+        color: #333;
+        transform: translateY(-2px);
+    }
+
+    .adult-only-toggle {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .validation-summary {
+        background: #ffebee;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .validation-summary ul {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+</style>
+
+<div class="edit-container">
+    <div class="container">
+        <h1 class="text-center mb-4">Edit Package</h1>
+
+        <div class="form-card">
+            <form asp-action="Edit" method="post" id="editPackageForm">
+                @if (!ViewContext.ModelState.IsValid)
+                {
+                <div class="validation-summary">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                 </div>
+                }
 
-                <div class="mb-3">
-                    <label asp-for="City" class="form-label"></label>
-                    <select asp-for="City" asp-items="Html.GetEnumSelectList<Domain.Enums.City>()" class="form-select">
-                        <option value="">Select City</option>
-                    </select>
-                    <span asp-validation-for="City" class="text-danger"></span>
-                </div>
+                <input type="hidden" name="id" value="@ViewBag.PackageId" />
 
-                <div class="mb-3">
-                    <label asp-for="CafeteriaLocation" class="form-label"></label>
-                    <select asp-for="CafeteriaLocation" class="form-select" asp-items="Html.GetEnumSelectList<Domain.Enums.CafeteriaLocation>()">
-                        <option value="">Select Location</option>
-                    </select>
-                    <span asp-validation-for="CafeteriaLocation" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="MealType" class="form-label"></label>
-                    <select asp-for="MealType" asp-items="Html.GetEnumSelectList<Domain.Enums.MealType>()" class="form-select">
-                        <option value="">Select Type</option>
-                    </select>
-                    <span asp-validation-for="MealType" class="text-danger"></span>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label asp-for="PickupDateTime" class="form-label"></label>
-                    <input asp-for="PickupDateTime" class="form-control" type="datetime-local" />
-                    <span asp-validation-for="PickupDateTime" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="LastReservationDateTime" class="form-label"></label>
-                    <input asp-for="LastReservationDateTime" class="form-control" type="datetime-local" />
-                    <span asp-validation-for="LastReservationDateTime" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="Price" class="form-label"></label>
-                    <div class="input-group">
-                        <span class="input-group-text">€</span>
-                        <input asp-for="Price" class="form-control" type="number" step="0.01" min="0.01" />
-                    </div>
-                    <span asp-validation-for="Price" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input asp-for="IsAdultOnly" class="form-check-input" type="checkbox" />
-                        <label asp-for="IsAdultOnly" class="form-check-label"></label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12">
-                <div class="mb-3">
-                    <label asp-for="ExampleProducts" class="form-label"></label>
-                    <div id="productsContainer">
-                        @for (int i = 0; i < Model.ExampleProducts.Count; i++)
-                        {
-                            <div class="input-group mb-2">
-                                <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
-                                       value="@Model.ExampleProducts[i]"
-                                       placeholder="Product name" required />
-                                <button type="button" class="btn btn-danger remove-product" onclick="removeProduct(this)" style="display: none;">Remove</button>
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="bi bi-info-circle"></i>
+                        Basic Information
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input asp-for="Name" class="form-control" placeholder="Package Name"/>
+                                <label asp-for="Name">Package Name</label>
+                                <span asp-validation-for="Name" class="text-danger"></span>
                             </div>
-                        }
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select asp-for="MealType" asp-items="Html.GetEnumSelectList<Domain.Enums.MealType>()"
+                                        class="form-select">
+                                    <option value="">Select Type</option>
+                                </select>
+                                <label asp-for="MealType">Meal Type</label>
+                                <span asp-validation-for="MealType" class="text-danger"></span>
+                            </div>
+                        </div>
                     </div>
-                    <button type="button" class="btn btn-secondary" onclick="addProduct()">Add Product</button>
-                    <div id="productsError" class="text-danger"></div>
-                    <span asp-validation-for="ExampleProducts" class="text-danger"></span>
                 </div>
-            </div>
-        </div>
 
-        <div class="row mt-4">
-            <div class="col">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-            </div>
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="bi bi-geo-alt"></i>
+                        Location Details
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select asp-for="City" asp-items="Html.GetEnumSelectList<Domain.Enums.City>()"
+                                        class="form-select">
+                                    <option value="">Select City</option>
+                                </select>
+                                <label asp-for="City">City</label>
+                                <span asp-validation-for="City" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select asp-for="CafeteriaLocation"
+                                        asp-items="Html.GetEnumSelectList<Domain.Enums.CafeteriaLocation>()"
+                                        class="form-select">
+                                    <option value="">Select Location</option>
+                                </select>
+                                <label asp-for="CafeteriaLocation">Cafeteria Location</label>
+                                <span asp-validation-for="CafeteriaLocation" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="bi bi-clock"></i>
+                        Timing & Price
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input asp-for="PickupDateTime" class="form-control" type="datetime-local"/>
+                                <label asp-for="PickupDateTime">Pickup Time</label>
+                                <span asp-validation-for="PickupDateTime" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input asp-for="LastReservationDateTime" class="form-control" type="datetime-local"/>
+                                <label asp-for="LastReservationDateTime">Last Reservation Time</label>
+                                <span asp-validation-for="LastReservationDateTime" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <div class="input-group">
+                                    <span class="input-group-text">€</span>
+                                    <input asp-for="Price" class="form-control" type="number" step="0.01" min="0.01"/>
+                                </div>
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="bi bi-box"></i>
+                        Products
+                    </h5>
+                    <div class="products-container">
+                        <div id="productsContainer">
+                            @for (int i = 0; i < Model.ExampleProducts.Count; i++)
+                            {
+                            <div class="product-input-group">
+                                <div class="input-group">
+                                    <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
+                                           value="@Model.ExampleProducts[i]"
+                                           placeholder="Product name" required/>
+                                    <button type="button" class="remove-product-btn" onclick="removeProduct(this)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            }
+                        </div>
+                        <div id="productsError" class="text-danger"></div>
+                        <button type="button" class="add-product-btn mt-3" onclick="addProduct()">
+                            <i class="bi bi-plus-circle"></i>
+                            Add Product
+                        </button>
+                    </div>
+                </div>
+
+                <div class="adult-only-toggle">
+                    <div class="form-check">
+                        <input asp-for="IsAdultOnly" class="form-check-input" type="checkbox"/>
+                        <label class="form-check-label" asp-for="IsAdultOnly">
+                            <i class="bi bi-shield-lock me-2"></i>
+                            This package is for adults only (18+)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="submit-btn">
+                        <i class="bi bi-check-circle"></i>
+                        Save Changes
+                    </button>
+                    <a asp-action="Index" class="cancel-btn">
+                        <i class="bi bi-x-circle"></i>
+                        Cancel
+                    </a>
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <script>
-        let productIndex = @Model.ExampleProducts.Count;
+<partial name="_ValidationScriptsPartial"/>
+<script>
+    let productIndex = @Model.ExampleProducts.Count;
 
-        function validateProducts() {
-            const inputs = document.querySelectorAll('.product-input');
-            let isValid = true;
-            const errorDiv = document.getElementById('productsError');
-            errorDiv.textContent = '';
+    function validateProducts() {
+        const inputs = document.querySelectorAll('.product-input');
+        let isValid = true;
+        const errorDiv = document.getElementById('productsError');
+        errorDiv.textContent = '';
 
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    isValid = false;
-                    input.classList.add('is-invalid');
-                } else {
-                    input.classList.remove('is-invalid');
-                }
-            });
-
-            if (!isValid) {
-                errorDiv.textContent = 'All product names are required.';
+        inputs.forEach(input => {
+            if (!input.value.trim()) {
+                isValid = false;
+                input.classList.add('is-invalid');
+            } else {
+                input.classList.remove('is-invalid');
             }
+        });
 
-            return isValid;
+        if (!isValid) {
+            errorDiv.textContent = 'All product names are required.';
         }
 
-        function addProduct() {
-            const container = document.getElementById('productsContainer');
-            const div = document.createElement('div');
-            div.className = 'input-group mb-2';
-            div.innerHTML = `
-                <input type="text" name="ExampleProducts[${productIndex}]" class="form-control product-input"
-                       placeholder="Product name" required />
-                <button type="button" class="btn btn-danger remove-product" onclick="removeProduct(this)">Remove</button>
+        return isValid;
+    }
+
+    function addProduct() {
+        const container = document.getElementById('productsContainer');
+        const div = document.createElement('div');
+        div.className = 'product-input-group';
+        div.innerHTML = `
+                <div class="input-group">
+                    <input type="text" name="ExampleProducts[${productIndex}]" 
+                           class="form-control product-input" 
+                           placeholder="Product name" required/>
+                    <button type="button" class="remove-product-btn">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             `;
-            container.appendChild(div);
-            productIndex++;
-            updateRemoveButtons();
-        }
-
-        function removeProduct(button) {
-            const inputGroup = button.closest('.input-group');
-            if (inputGroup) {
-                inputGroup.remove();
-                reindexProducts();
-                updateRemoveButtons();
-                validateProducts();
-            }
-        }
-
-        function reindexProducts() {
-            const inputs = document.querySelectorAll('.product-input');
-            inputs.forEach((input, index) => {
-                input.name = `ExampleProducts[${index}]`;
-            });
-            productIndex = inputs.length;
-        }
-
-        function updateRemoveButtons() {
-            const containers = document.querySelectorAll('#productsContainer .input-group');
-            const removeButtons = document.querySelectorAll('.remove-product');
-            removeButtons.forEach(button => {
-                button.style.display = containers.length > 1 ? 'block' : 'none';
-            });
-        }
-
-        document.getElementById('editPackageForm').addEventListener('submit', function(e) {
-            if (!validateProducts()) {
-                e.preventDefault();
-                return false;
-            }
-            return true;
-        });
-
-        document.getElementById('productsContainer').addEventListener('input', function(e) {
-            if (e.target.classList.contains('product-input')) {
-                validateProducts();
-            }
-        });
-
-        // Initial call to show/hide remove buttons
+        container.appendChild(div);
+        productIndex++;
         updateRemoveButtons();
-    </script>
+
+        // Add click handler for the new remove button
+        const newRemoveButton = div.querySelector('.remove-product-btn');
+        newRemoveButton.onclick = () => removeProduct(newRemoveButton);
+    }
+
+    function removeProduct(button) {
+        const group = button.closest('.product-input-group');
+        if (group) {
+            group.remove();
+            reindexProducts();
+            updateRemoveButtons();
+            validateProducts();
+        }
+    }
+
+    function reindexProducts() {
+        const inputs = document.querySelectorAll('.product-input');
+        inputs.forEach((input, index) => {
+            input.name = `ExampleProducts[${index}]`;
+        });
+        productIndex = inputs.length;
+    }
+
+    function updateRemoveButtons() {
+        const buttons = document.querySelectorAll('.remove-product-btn');
+        const showButtons = document.querySelectorAll('.product-input-group').length > 1;
+        buttons.forEach(button => {
+            button.style.display = showButtons ? 'block' : 'none';
+        });
+    }
+
+    document.getElementById('editPackageForm').addEventListener('submit', function(e) {
+        if (!validateProducts()) {
+            e.preventDefault();
+            return false;
+        }
+        return true;
+    });
+
+    // Add input event listeners to validate on typing
+    document.getElementById('productsContainer').addEventListener('input', function(e) {
+        if (e.target.classList.contains('product-input')) {
+            validateProducts();
+        }
+    });
+
+    // Initial call to show/hide remove buttons
+    updateRemoveButtons();
+</script>
 }

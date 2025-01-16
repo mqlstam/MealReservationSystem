@@ -1,3 +1,5 @@
+using Application.Common.Interfaces.Services;
+using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +21,9 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
         
         builder.UseSqlServer(connectionString);
 
-        return new ApplicationDbContext(builder.Options);
+        // Create an instance of AgeVerificationService
+        IAgeVerificationService ageVerificationService = new AgeVerificationService();
+
+        return new ApplicationDbContext(builder.Options, ageVerificationService);
     }
 }

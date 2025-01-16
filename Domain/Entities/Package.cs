@@ -17,7 +17,12 @@ public class Package
     
     public DateTime LastReservationDateTime { get; set; }
     
-    public bool IsAdultOnly { get; set; }
+    private bool? _isAdultOnly;
+    public bool IsAdultOnly
+    {
+        get => _isAdultOnly ?? Products.Any(p => p.IsAlcoholic);
+        set => _isAdultOnly = value;
+    }
     
     [Range(0.01, double.MaxValue)]
     public decimal Price { get; set; }

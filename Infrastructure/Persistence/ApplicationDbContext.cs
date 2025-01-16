@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Application.Common.Interfaces.Services;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,9 +7,14 @@ namespace Infrastructure.Persistence;
 
 public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly IAgeVerificationService _ageVerificationService;
+
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        IAgeVerificationService ageVerificationService)
         : base(options)
     {
+        _ageVerificationService = ageVerificationService;
     }
 
     public DbSet<Product> Products => Set<Product>();
@@ -52,5 +58,32 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 .HasForeignKey(p => p.CafeteriaId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Check for age restrictions on reservations before saving
+        var reservationEntries = ChangeTracker.Entries<Reservation>()
+            .Where(e => e.State == EntityState.Added)
+            .Select(e => e.Entity)
+            .ToList();
+
+        foreach (var reservation in reservationEntries)
+        {
+            // Load related entities
+            var package = await Packages
+                .Include(p => p.Products)
+                .FirstOrDefaultAsync(p => p.Id == reservation.PackageId, cancellationToken);
+            
+            var student = await Students
+                .FirstOrDefaultAsync(s => s.StudentNumber == reservation.StudentNumber, cancellationToken);
+
+            if (package != null && student != null && !_ageVerificationService.IsStudentEligibleForPackage(student, package))
+            {
+                throw new InvalidOperationException("Student must be 18 or older to reserve this package");
+            }
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
     }
 }

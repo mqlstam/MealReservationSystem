@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Identity;
 
-public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationIdentityDbContext>
+public class IdentityDesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationIdentityDbContext>
 {
     public ApplicationIdentityDbContext CreateDbContext(string[] args)
     {

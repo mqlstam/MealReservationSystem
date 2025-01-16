@@ -16,6 +16,18 @@ public class Student
     // Navigation property
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
-    // Helper method to check if student is eligible for alcohol
-    public bool IsOfLegalAge => DateTime.Today.AddYears(-18) >= DateOfBirth;
+    // Helper method to check if student is eligible for adult packages on a specific date
+    public bool IsOfLegalAgeOn(DateTime date)
+    {
+        var age = date.Year - DateOfBirth.Year;
+        
+        // Adjust age if birthday hasn't occurred this year
+        if (DateOfBirth.Date > date.AddYears(-age))
+            age--;
+            
+        return age >= 18;
+    }
+
+    // For backward compatibility and general age checks
+    public bool IsOfLegalAge => IsOfLegalAgeOn(DateTime.Today);
 }

@@ -18,6 +18,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Register AgeVerificationService first
+        services.AddScoped<IAgeVerificationService, AgeVerificationService>();
+
         // Add Identity DbContext
         services.AddDbContext<ApplicationIdentityDbContext>(options =>
             options.UseSqlServer(

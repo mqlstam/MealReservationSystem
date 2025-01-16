@@ -20,9 +20,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions =>
         {
-            sqlOptions.CommandTimeout(5); // Quick 5 second timeout
+            sqlOptions.CommandTimeout(5);
             sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 1, // Single retry
+                maxRetryCount: 1,
                 maxRetryDelay: TimeSpan.FromSeconds(1),
                 errorNumbersToAdd: null);
         });
@@ -34,9 +34,9 @@ builder.Services.AddDbContext<ApplicationIdentityDbContext>(options =>
         builder.Configuration.GetConnectionString("IdentityConnection"),
         sqlOptions =>
         {
-            sqlOptions.CommandTimeout(5); // Quick 5 second timeout
+            sqlOptions.CommandTimeout(5);
             sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 1, // Single retry
+                maxRetryCount: 1,
                 maxRetryDelay: TimeSpan.FromSeconds(1),
                 errorNumbersToAdd: null);
         });
@@ -44,14 +44,12 @@ builder.Services.AddDbContext<ApplicationIdentityDbContext>(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-// Add the database error handling middleware
 app.UseMiddleware<DatabaseErrorHandlingMiddleware>();
 
 app.UseHttpsRedirection();
@@ -62,9 +60,10 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Update default route to point to Account/Login
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Login}/{id?}");
 
 // Migrate and seed database
 using (var scope = app.Services.CreateScope())

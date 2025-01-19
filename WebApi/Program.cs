@@ -1,7 +1,7 @@
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using WebApi.GraphQL;
-using WebApi.GraphQL.Types;
+using Application.Common.Interfaces.GraphQL;
+using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,18 +10,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add Infrastructure services with centralized configuration
+// Add Infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Add GraphQL services
-builder.Services
-    .AddGraphQLServer()
-    .AddQueryType()
-    .AddType<PackageType>()
-    .AddType<ReservationType>()
-    .AddTypeExtension<MealReservationQuery>();
+// Add WebApi specific services
+builder.Services.AddScoped<IGraphQLService, GraphQLService>();
+builder.Services.AddGraphQLServer();
 
-// Configure CORS if needed
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins",
@@ -33,6 +28,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Configure GraphQL
+var graphQLService = app.Services.GetRequiredService<IGraphQLService>();
+graphQLService.RegisterTypes(app.Services);
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -41,10 +40,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// Use CORS
 app.UseCors("AllowSpecificOrigins");
-
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -20,7 +20,18 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Add Database Contexts
+        services.AddDatabaseServices(configuration);
+        services.AddIdentityServices();
+        services.AddCoreServices();
+        services.AddInfrastructureAuth();
+
+        return services;
+    }
+
+    private static IServiceCollection AddDatabaseServices(
+        this IServiceCollection services, 
+        IConfiguration configuration)
+    {
         services.AddDbContext<ApplicationDbContext>((provider, options) =>
         {
             options.UseSqlServer(
@@ -47,7 +58,11 @@ public static class DependencyInjection
                         errorNumbersToAdd: null);
                 }));
 
-        // Configure Identity
+        return services;
+    }
+
+    private static IServiceCollection AddIdentityServices(this IServiceCollection services)
+    {
         services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
                 options.Password.RequiredLength = 8;
@@ -58,6 +73,11 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<ApplicationIdentityDbContext>()
             .AddDefaultTokenProviders();
 
+        return services;
+    }
+
+    private static IServiceCollection AddCoreServices(this IServiceCollection services)
+    {
         // Register Core Services with explicit lifetimes
         services.AddScoped<IAgeVerificationService, AgeVerificationService>();
         services.AddScoped<IIdentityService, IdentityService>();
@@ -72,7 +92,11 @@ public static class DependencyInjection
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<ICafeteriaRepository, CafeteriaRepository>();
 
-        // Register authentication and authorization services
+        return services;
+    }
+    
+    private static IServiceCollection AddInfrastructureAuth(this IServiceCollection services)
+    {
         services.AddAuthentication()
             .AddCookie(options =>
             {

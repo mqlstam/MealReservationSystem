@@ -1,119 +1,102 @@
-using System;
-using System.Threading.Tasks;
 using Application.Common.Interfaces;
 using Application.Common.Interfaces.Services;
 using Domain.Entities;
-using Domain.Enums;
 
-namespace Application.Services
+namespace Application.Services;
+
+public class ReservationService : IReservationService
 {
-    /// <summary>
-    /// Centralized reservation logic for handling package reservations,
-    /// picking up, and marking no-shows. 
-    /// Reduces duplication in controllers.
-    /// </summary>
-    public class ReservationService : IReservationService
+    private readonly IPackageRepository _packageRepository;
+    private readonly IReservationRepository _reservationRepository;
+    private readonly IStudentService _studentService;
+    private readonly INoShowService _noShowService;
+    private readonly IAgeVerificationService _ageVerificationService;
+
+    public ReservationService(
+        IPackageRepository packageRepository,
+        IReservationRepository reservationRepository,
+        IStudentService studentService,
+        INoShowService noShowService,
+        IAgeVerificationService ageVerificationService)
     {
-        private readonly IPackageRepository _packageRepository;
-        private readonly IReservationRepository _reservationRepository;
-        private readonly IStudentService _studentService;
+        _packageRepository = packageRepository;
+        _reservationRepository = reservationRepository;
+        _studentService = studentService;
+        _noShowService = noShowService;
+        _ageVerificationService = ageVerificationService;
+    }
 
-        public ReservationService(
-            IPackageRepository packageRepository,
-            IReservationRepository reservationRepository,
-            IStudentService studentService)
+    public async Task<string> ReservePackageAsync(int packageId, string userId)
+    {
+        // Get the student from identity
+        var student = await _studentService.GetStudentByIdentityIdAsync(userId);
+        if (student == null)
+            return "Student record not found";
+
+        // Get the package
+        var package = await _packageRepository.GetByIdAsync(packageId);
+        if (package == null)
+            return "Package not found";
+
+        // Check if already reserved
+        if (package.Reservation != null)
+            return "Package already reserved";
+
+        // Check no-show limit
+        if (!await _noShowService.CanStudentReserveAsync(userId))
+            return "You cannot make reservations due to multiple no-shows";
+
+        // Check age restriction
+        if (!_ageVerificationService.IsStudentEligibleForPackage(student, package))
+            return "You must be 18 or older to reserve this package";
+
+        // Check existing reservation for the date
+        if (await _reservationRepository.HasReservationForDateAsync(userId, package.PickupDateTime.Date))
+            return "You already have a reservation for this date";
+
+        // Create reservation
+        var reservation = new Reservation
         {
-            _packageRepository = packageRepository;
-            _reservationRepository = reservationRepository;
-            _studentService = studentService;
-        }
+            PackageId = package.Id,
+            StudentNumber = student.StudentNumber,
+            ReservationDateTime = DateTime.Now
+        };
 
-        public async Task<string> ReservePackageAsync(int packageId, string userId)
+        await _reservationRepository.AddAsync(reservation);
+        return "Package reserved successfully!";
+    }
+
+    public async Task MarkAsPickedUpAsync(int packageId)
+    {
+        var package = await _packageRepository.GetByIdAsync(packageId);
+        if (package?.Reservation == null)
+            return;
+
+        package.Reservation.IsPickedUp = true;
+        await _packageRepository.UpdateAsync(package);
+    }
+
+    public async Task MarkAsNoShowAsync(int packageId)
+    {
+        var package = await _packageRepository.GetByIdAsync(packageId);
+        if (package?.Reservation == null)
+            return;
+
+        await _noShowService.ProcessNoShowAsync(package.Reservation);
+    }
+
+    public async Task ProcessExpiredReservationsAsync()
+    {
+        var packages = await _packageRepository.GetAllAsync();
+        
+        foreach (var package in packages)
         {
-            // 1. Check if user is valid
-            if (string.IsNullOrEmpty(userId))
+            if (package.Reservation != null &&
+                !package.Reservation.IsPickedUp &&
+                !package.Reservation.IsNoShow &&
+                package.PickupDateTime < DateTime.Now)
             {
-                return "User not found or not authenticated.";
-            }
-
-            // 2. Get student from identity
-            var student = await _studentService.GetStudentByIdentityIdAsync(userId);
-            if (student == null)
-            {
-                return "Student record not found.";
-            }
-
-            // 3. Get the package
-            var package = await _packageRepository.GetByIdAsync(packageId);
-            if (package == null)
-            {
-                return "Package not found.";
-            }
-
-            // 4. Already reserved?
-            if (package.Reservation != null)
-            {
-                return "Package already reserved.";
-            }
-
-            // 5. Check age restriction
-            if (package.IsAdultOnly && !student.IsOfLegalAge)
-            {
-                return "You must be 18 or older to reserve this package.";
-            }
-
-            // 6. Check no-show count
-            if (student.NoShowCount >= 2)
-            {
-                return "You cannot make reservations due to multiple no-shows.";
-            }
-
-            // 7. Check if student already has a reservation for the same pickup day
-            bool hasReservationSameDay = await _reservationRepository.HasReservationForDateAsync(
-                student.IdentityId, package.PickupDateTime.Date);
-            if (hasReservationSameDay)
-            {
-                return "You already have a reservation for this date.";
-            }
-
-            // 8. Create the reservation
-            var reservation = new Reservation
-            {
-                PackageId = package.Id,
-                StudentNumber = student.StudentNumber,
-                ReservationDateTime = DateTime.Now
-            };
-
-            await _reservationRepository.AddAsync(reservation);
-            return "Package reserved successfully!";
-        }
-
-        public async Task MarkAsPickedUpAsync(int packageId)
-        {
-            var package = await _packageRepository.GetByIdAsync(packageId);
-            if (package?.Reservation == null) return;
-
-            package.Reservation.IsPickedUp = true;
-            await _packageRepository.UpdateAsync(package);
-            // Optionally, you could do other logic here 
-            // (e.g., awarding student points for picking up on time, etc.).
-        }
-
-        public async Task MarkAsNoShowAsync(int packageId)
-        {
-            var package = await _packageRepository.GetByIdAsync(packageId);
-            if (package?.Reservation == null) return;
-
-            package.Reservation.IsNoShow = true;
-            await _packageRepository.UpdateAsync(package);
-
-            // Increment student's no-show count
-            var student = await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber);
-            if (student != null)
-            {
-                await _studentService.UpdateNoShowCountAsync(
-                    package.Reservation.StudentNumber,
-                    student.NoShowCount + 1);
+                await _noShowService.ProcessNoShowAsync(package.Reservation);
             }
         }
     }

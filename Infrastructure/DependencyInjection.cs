@@ -1,6 +1,7 @@
 using Application.Common.Interfaces;
 using Application.Common.Interfaces.Services;
 using Application.Services;
+using Application.Services.NoShow;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
@@ -84,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<IStudentService, StudentService>();
         services.AddScoped<IPackageViewService, PackageViewService>();
         services.AddScoped<IReservationService, ReservationService>();
+        services.AddScoped<INoShowService, NoShowService>();
 
         // Register Infrastructure Services/Repositories
         services.AddScoped<IApplicationDbContext>(provider => 

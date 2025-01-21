@@ -33,6 +33,10 @@ public class RegisterViewModel
     [DataType(DataType.Date)]
     public DateTime DateOfBirth { get; set; }
 
+    [Phone]
+    [Display(Name = "Phone Number")]
+    public string? PhoneNumber { get; set; }
+
     [Required]
     [Display(Name = "Register as Student")]
     public bool IsStudent { get; set; } = true;

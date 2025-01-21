@@ -19,6 +19,7 @@ public class CreatePackageViewModel
     [DataType(DataType.DateTime)]
     [Display(Name = "Pickup Time")]
     [FutureDate(ErrorMessage = "Pickup time must be in the future")]
+    [MaxAdvanceDays(2, ErrorMessage = "Packages can only be created maximum 2 days in advance")]
     public DateTime PickupDateTime { get; set; } = DateTime.Now.AddHours(1);
 
     [Required(ErrorMessage = "Last reservation time is required")]
@@ -51,6 +52,26 @@ public class CreatePackageViewModel
             if (value is DateTime dateTime)
             {
                 return dateTime > DateTime.Now;
+            }
+            return false;
+        }
+    }
+
+    public class MaxAdvanceDaysAttribute : ValidationAttribute
+    {
+        private readonly int _maxDays;
+
+        public MaxAdvanceDaysAttribute(int maxDays)
+        {
+            _maxDays = maxDays;
+        }
+
+        public override bool IsValid(object? value)
+        {
+            if (value is DateTime dateTime)
+            {
+                var maxDate = DateTime.Now.AddDays(_maxDays);
+                return dateTime <= maxDate;
             }
             return false;
         }

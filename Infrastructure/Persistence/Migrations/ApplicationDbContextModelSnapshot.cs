@@ -171,6 +171,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int>("NoShowCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("StudyCity")
                         .HasColumnType("int");
 

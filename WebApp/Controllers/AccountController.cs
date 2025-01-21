@@ -80,7 +80,8 @@ namespace WebApp.Controllers
                             firstName: user.FirstName,
                             lastName: user.LastName,
                             dateOfBirth: user.DateOfBirth ?? DateTime.UtcNow.AddYears(-20),
-                            studyCity: parsedCity
+                            studyCity: parsedCity,
+                            phoneNumber: model.PhoneNumber
                         );
                     }
 

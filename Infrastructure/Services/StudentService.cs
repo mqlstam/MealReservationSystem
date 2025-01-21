@@ -17,7 +17,7 @@ public class StudentService : IStudentService
     public async Task<Student> GetOrCreateStudentAsync(
         string identityId, string studentNumber, string email, 
         string firstName, string lastName, DateTime dateOfBirth, 
-        Domain.Enums.City studyCity)
+        Domain.Enums.City studyCity, string? phoneNumber)
     {
         var student = await _context.Students
             .FirstOrDefaultAsync(s => s.IdentityId == identityId);
@@ -32,6 +32,7 @@ public class StudentService : IStudentService
                 LastName = lastName,
                 DateOfBirth = dateOfBirth,
                 StudyCity = studyCity,
+                PhoneNumber = phoneNumber,
                 IdentityId = identityId,
                 NoShowCount = 0
             };

@@ -35,4 +35,12 @@ public class Package
     
     public int CafeteriaId { get; set; }
     public Cafeteria Cafeteria { get; set; } = null!;
+
+    // Add validation method for max 2 days advance creation
+    public bool IsValidCreationDate()
+    {
+        var maxAdvanceDays = 2;
+        var latestAllowedDate = DateTime.Now.AddDays(maxAdvanceDays);
+        return PickupDateTime <= latestAllowedDate;
+    }
 }

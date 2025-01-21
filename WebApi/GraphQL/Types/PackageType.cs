@@ -18,10 +18,22 @@ public class PackageType : ObjectType<Package>
         descriptor.Field(p => p.MealType);
         
         descriptor.Field("exampleProducts")
-            .ResolveWith<Package>(p => 
-                p.Products.Select(prod => prod.Name).ToList());
-        
+            .ResolveWith<PackageResolvers>(r => r.GetProductNames(default!));
+            
         descriptor.Field("isReserved")
-            .ResolveWith<Package>(p => p.Reservation != null);
+            .ResolveWith<PackageResolvers>(r => r.IsReserved(default!));
+    }
+}
+
+public class PackageResolvers
+{
+    public IEnumerable<string> GetProductNames([Parent] Package package)
+    {
+        return package.Products.Select(p => p.Name);
+    }
+
+    public bool IsReserved([Parent] Package package)
+    {
+        return package.Reservation != null;
     }
 }

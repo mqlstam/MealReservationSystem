@@ -1,7 +1,8 @@
 using Infrastructure;
+using WebApi.GraphQL;
+using WebApi.GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
-using Application.Common.Interfaces.GraphQL;
-using WebApi.Services;
+using HotChocolate.Execution;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,10 +14,17 @@ builder.Services.AddSwaggerGen();
 // Add Infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Add WebApi specific services
-builder.Services.AddScoped<IGraphQLService, GraphQLService>();
-builder.Services.AddGraphQLServer();
+// Configure GraphQL with error handling
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType()
+    .AddType<PackageType>()
+    .AddType<ReservationType>()
+    .AddTypeExtension<MealReservationQuery>()
+    .AddErrorFilter<GraphQLErrorFilter>()
+    .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = true);
 
+// Add CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins",
@@ -27,10 +35,6 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
-// Configure GraphQL
-var graphQLService = app.Services.GetRequiredService<IGraphQLService>();
-graphQLService.RegisterTypes(app.Services);
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -64,3 +68,19 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+public class GraphQLErrorFilter : IErrorFilter
+{
+    private readonly ILogger<GraphQLErrorFilter> _logger;
+
+    public GraphQLErrorFilter(ILogger<GraphQLErrorFilter> logger)
+    {
+        _logger = logger;
+    }
+
+    public IError OnError(IError error)
+    {
+        _logger.LogError(error.Exception, "GraphQL Error: {Message}", error.Message);
+        return error.WithMessage(error.Message);
+    }
+}

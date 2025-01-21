@@ -42,6 +42,14 @@ public class ReservationService : IReservationService
         if (package.Reservation != null)
             return "Package already reserved";
 
+        // Check if pickup time has passed
+        if (package.PickupDateTime <= DateTime.Now)
+            return "Pickup time has passed";
+
+        // Check if reservation deadline has passed
+        if (package.LastReservationDateTime <= DateTime.Now)
+            return "Reservation time has passed";
+
         // Check no-show limit
         if (!await _noShowService.CanStudentReserveAsync(userId))
             return "You cannot make reservations due to multiple no-shows";
@@ -54,16 +62,28 @@ public class ReservationService : IReservationService
         if (await _reservationRepository.HasReservationForDateAsync(userId, package.PickupDateTime.Date))
             return "You already have a reservation for this date";
 
-        // Create reservation
-        var reservation = new Reservation
+        try
         {
-            PackageId = package.Id,
-            StudentNumber = student.StudentNumber,
-            ReservationDateTime = DateTime.Now
-        };
+            // Create reservation
+            var reservation = new Reservation
+            {
+                PackageId = package.Id,
+                StudentNumber = student.StudentNumber,
+                ReservationDateTime = DateTime.Now
+            };
 
-        await _reservationRepository.AddAsync(reservation);
-        return "Package reserved successfully!";
+            await _reservationRepository.AddAsync(reservation);
+            return "Package reserved successfully!";
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Handle concurrent reservations
+            return "Package already reserved";
+        }
+        catch (Exception)
+        {
+            throw;
+        }
     }
 
     public async Task MarkAsPickedUpAsync(int packageId)

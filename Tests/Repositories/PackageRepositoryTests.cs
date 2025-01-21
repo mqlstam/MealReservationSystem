@@ -17,8 +17,7 @@ public class PackageRepositoryTests
     {
         _context = TestDbContext.Create();
         _mockStudentService = new Mock<IStudentService>();
-        _repository = new PackageRepository(_context, _mockStudentService.Object);
-    }
+        _repository = new PackageRepository(_context);    }
 
     [Fact]
     public async Task GetAvailablePackages_ShouldReturnOnlyNonReservedFuturePackages()

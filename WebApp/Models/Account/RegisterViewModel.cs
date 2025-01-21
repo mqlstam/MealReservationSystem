@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using WebApp.Validation;
 
 namespace WebApp.Models.Account;
 
@@ -31,6 +32,7 @@ public class RegisterViewModel
     [Required]
     [Display(Name = "Date of Birth")]
     [DataType(DataType.Date)]
+    [MinimumAge(16, ErrorMessage = "You must be at least 16 years old to register.")]
     public DateTime DateOfBirth { get; set; }
 
     [Phone]

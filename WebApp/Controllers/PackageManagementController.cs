@@ -39,11 +39,10 @@ namespace WebApp.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            // Get all packages from repository
+            // Get all packages
             var packages = await _packageRepository.GetAllAsync();
             var packageViewModels = new List<PackageManagementViewModel>();
 
-            // Convert domain entities to view models
             foreach (var package in packages)
             {
                 var student = (package.Reservation?.StudentNumber != null)
@@ -71,10 +70,11 @@ namespace WebApp.Controllers
                 packageViewModels.Add(vm);
             }
 
-            // Filter only my cafeteria if requested
+            // Optionally filter by the employee’s own cafeteria
             if (showOnlyMyCafeteria && !string.IsNullOrEmpty(user.CafeteriaLocation))
             {
-                if (Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var myLocation))
+                // Parse user’s cafeteria location (ignore case)
+                if (Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, true, out var myLocation))
                 {
                     packageViewModels = packageViewModels
                         .Where(p => p.CafeteriaLocation == myLocation)
@@ -82,7 +82,7 @@ namespace WebApp.Controllers
                 }
             }
 
-            // Apply additional filters
+            // Additional filters
             var finalViewModels = packageViewModels.AsQueryable();
 
             if (cityFilter.HasValue)
@@ -118,13 +118,15 @@ namespace WebApp.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            if (string.IsNullOrEmpty(user.CafeteriaLocation) ||
-                !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
+            // First parse user’s cafeteria location (ignore case)
+            if (string.IsNullOrEmpty(user.CafeteriaLocation)
+                || !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, true, out var location))
             {
                 TempData["Error"] = "Your account is not properly configured for cafeteria management.";
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction(nameof(Index));
             }
 
+            // Attempt to find the cafeteria
             var cafeteria = await _cafeteriaRepository.GetByLocationAsync(location);
             if (cafeteria == null)
             {
@@ -153,13 +155,15 @@ namespace WebApp.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            if (string.IsNullOrEmpty(user.CafeteriaLocation) ||
-                !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, out var location))
+            // Parse user’s cafeteria location (ignore case)
+            if (string.IsNullOrEmpty(user.CafeteriaLocation)
+                || !Enum.TryParse<CafeteriaLocation>(user.CafeteriaLocation, true, out var location))
             {
                 ModelState.AddModelError("", "Your account is not properly configured for cafeteria management.");
                 return View(model);
             }
 
+            // Attempt to find the cafeteria
             var cafeteria = await _cafeteriaRepository.GetByLocationAsync(location);
             if (cafeteria == null)
             {
@@ -178,13 +182,14 @@ namespace WebApp.Controllers
                 return View(model);
             }
 
-            // For hot meals, check if location offers them
+            // Check if hot meals are allowed at cafeteria location
             if (model.MealType == MealType.HotMeal && !cafeteria.OffersHotMeals)
             {
                 ModelState.AddModelError("MealType", "Your location does not offer hot meals.");
                 return View(model);
             }
 
+            // Must reserve before pickup
             if (model.LastReservationDateTime >= model.PickupDateTime)
             {
                 ModelState.AddModelError("LastReservationDateTime",
@@ -192,7 +197,14 @@ namespace WebApp.Controllers
                 return View(model);
             }
 
-            var package = new Package
+            // Check if user’s cafeteria location matches the package location
+            if (model.CafeteriaLocation.ToString() != user.CafeteriaLocation)
+            {
+                ModelState.AddModelError("", "Package location must match your assigned location.");
+                return View(model);
+            }
+
+            var newPackage = new Package
             {
                 Name = model.Name,
                 City = model.City,
@@ -208,7 +220,7 @@ namespace WebApp.Controllers
                     .ToList()
             };
 
-            await _packageRepository.AddAsync(package);
+            await _packageRepository.AddAsync(newPackage);
             TempData["Success"] = "Package created successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -216,28 +228,22 @@ namespace WebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            // Get the current user
             var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return Challenge();
-            }
+            if (user == null) return Challenge();
 
-            // Get the package
             var package = await _packageRepository.GetByIdAsync(id);
             if (package == null)
             {
                 return NotFound();
             }
 
-            // Check if package is already reserved
+            // Check if already reserved
             if (package.Reservation != null)
             {
                 TempData["Error"] = "Cannot edit a package that is already reserved.";
                 return RedirectToAction(nameof(Index));
             }
 
-            // Create the view model
             var viewModel = new CreatePackageViewModel
             {
                 Name = package.Name,
@@ -280,6 +286,7 @@ namespace WebApp.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
+            // Get cafeteria by the package's stored location
             var cafeteria = await _cafeteriaRepository.GetByLocationAsync(package.CafeteriaLocation);
             if (cafeteria == null)
             {
@@ -287,7 +294,6 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Clean up blank product lines
             model.ExampleProducts = model.ExampleProducts
                 .Where(p => !string.IsNullOrWhiteSpace(p))
                 .ToList();
@@ -299,7 +305,6 @@ namespace WebApp.Controllers
                 return View(model);
             }
 
-            // For hot meals, check if location offers them
             if (model.MealType == MealType.HotMeal && !cafeteria.OffersHotMeals)
             {
                 ModelState.AddModelError("MealType", "Your location does not offer hot meals.");
@@ -324,7 +329,7 @@ namespace WebApp.Controllers
             package.Price = model.Price;
             package.MealType = model.MealType;
 
-            // Rebuild the Products list
+            // Rebuild product list
             package.Products.Clear();
             foreach (var productName in model.ExampleProducts)
             {
@@ -459,7 +464,6 @@ namespace WebApp.Controllers
 
             package.Reservation.IsNoShow = false;
 
-            // Decrement the student's no-show count by one
             var student = await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber);
             if (student != null && student.NoShowCount > 0)
             {

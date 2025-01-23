@@ -142,7 +142,9 @@ namespace WebApp.Controllers
                 LastReservationDateTime = DateTime.Now.AddMinutes(30)
             };
 
-            return View(viewModel);
+            ViewBag.CityName = cafeteria.City.ToString(); // Pass the name to the view
+            ViewBag.CafeteriaLocationName = cafeteria.Location.ToString(); // Pass the name to the view
+             return View(viewModel);
         }
 
         [HttpPost]

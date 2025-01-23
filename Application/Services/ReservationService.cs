@@ -1,6 +1,7 @@
 using Application.Common.Interfaces;
 using Application.Common.Interfaces.Services;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Services;
 
@@ -103,21 +104,5 @@ public class ReservationService : IReservationService
             return;
 
         await _noShowService.ProcessNoShowAsync(package.Reservation);
-    }
-
-    public async Task ProcessExpiredReservationsAsync()
-    {
-        var packages = await _packageRepository.GetAllAsync();
-        
-        foreach (var package in packages)
-        {
-            if (package.Reservation != null &&
-                !package.Reservation.IsPickedUp &&
-                !package.Reservation.IsNoShow &&
-                package.PickupDateTime < DateTime.Now)
-            {
-                await _noShowService.ProcessNoShowAsync(package.Reservation);
-            }
-        }
     }
 }

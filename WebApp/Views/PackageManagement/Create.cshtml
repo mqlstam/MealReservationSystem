@@ -1,6 +1,6 @@
 @model WebApp.Models.Package.CreatePackageViewModel
 @{
-ViewData["Title"] = "Create Package";
+    ViewData["Title"] = "Create Package";
 }
 
 <style>
@@ -47,13 +47,15 @@ ViewData["Title"] = "Create Package";
         color: #666;
     }
 
-    .form-control, .form-select {
+    .form-control,
+    .form-select {
         border: 2px solid #e0e0e0;
         border-radius: 0.5rem;
         transition: all 0.3s ease;
     }
 
-    .form-control:focus, .form-select:focus {
+    .form-control:focus,
+    .form-select:focus {
         border-color: #1976d2;
         box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
     }
@@ -188,9 +190,9 @@ ViewData["Title"] = "Create Package";
             <form asp-action="Create" method="post" id="createPackageForm">
                 @if (!ViewContext.ModelState.IsValid)
                 {
-                <div class="validation-summary">
-                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                </div>
+                    <div class="validation-summary">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    </div>
                 }
 
                 <div class="form-section">
@@ -226,25 +228,22 @@ ViewData["Title"] = "Create Package";
                     </h5>
                     <div class="row">
                         <div class="col-md-6">
+                            <!-- Display city from the employee's cafeteria as read-only text -->
                             <div class="form-floating">
-                                <select asp-for="City" asp-items="Html.GetEnumSelectList<Domain.Enums.City>()"
-                                        class="form-select">
-                                    <option value="">Select City</option>
-                                </select>
-                                <label asp-for="City">City</label>
-                                <span asp-validation-for="City" class="text-danger"></span>
+                                <input type="text" class="form-control" value="@ViewBag.CityName" disabled />
+                                <label>City</label>
                             </div>
+                            <!-- Hidden field to preserve city value for the model -->
+                            <input type="hidden" asp-for="City" value="@Model.City" />
                         </div>
                         <div class="col-md-6">
+                            <!-- Display cafeteria location from the employee's cafeteria as read-only text -->
                             <div class="form-floating">
-                                <select asp-for="CafeteriaLocation"
-                                        asp-items="Html.GetEnumSelectList<Domain.Enums.CafeteriaLocation>()"
-                                        class="form-select">
-                                    <option value="">Select Location</option>
-                                </select>
-                                <label asp-for="CafeteriaLocation">Cafeteria Location</label>
-                                <span asp-validation-for="CafeteriaLocation" class="text-danger"></span>
+                                <input type="text" class="form-control" value="@ViewBag.CafeteriaLocationName" disabled />
+                                <label>Cafeteria Location</label>
                             </div>
+                            <!-- Hidden field to preserve location value for the model -->
+                            <input type="hidden" asp-for="CafeteriaLocation" value="@Model.CafeteriaLocation" />
                         </div>
                     </div>
                 </div>
@@ -289,15 +288,35 @@ ViewData["Title"] = "Create Package";
                     </h5>
                     <div class="products-container">
                         <div id="productsContainer">
-                            <div class="product-input-group">
-                                <div class="input-group">
-                                    <input type="text" name="ExampleProducts[0]" class="form-control product-input"
-                                           placeholder="Product name" required/>
-                                    <button type="button" class="remove-product-btn" style="display: none;">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                            @if (Model.ExampleProducts == null || Model.ExampleProducts.Count == 0)
+                            {
+                                <!-- Always provide at least one product field -->
+                                <div class="product-input-group">
+                                    <div class="input-group">
+                                        <input type="text" name="ExampleProducts[0]" class="form-control product-input"
+                                               placeholder="Product name" required/>
+                                        <button type="button" class="remove-product-btn" style="display: none;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            }
+                            else
+                            {
+                                for (int i = 0; i < Model.ExampleProducts.Count; i++)
+                                {
+                                    <div class="product-input-group">
+                                        <div class="input-group">
+                                            <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
+                                                   value="@Model.ExampleProducts[i]"
+                                                   placeholder="Product name" required/>
+                                            <button type="button" class="remove-product-btn" style="display: none;">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            }
                         </div>
                         <div id="productsError" class="text-danger"></div>
                         <button type="button" class="add-product-btn mt-3" onclick="addProductField()">
@@ -335,7 +354,7 @@ ViewData["Title"] = "Create Package";
 @section Scripts {
 <partial name="_ValidationScriptsPartial"/>
 <script>
-    let productIndex = 1;
+    let productIndex = @Model.ExampleProducts?.Count ?? 1;
 
     function validateProducts() {
         const inputs = document.querySelectorAll('.product-input');
@@ -364,15 +383,15 @@ ViewData["Title"] = "Create Package";
         const div = document.createElement('div');
         div.className = 'product-input-group';
         div.innerHTML = `
-                <div class="input-group">
-                    <input type="text" name="ExampleProducts[${productIndex}]" 
-                           class="form-control product-input" 
-                           placeholder="Product name" required/>
-                    <button type="button" class="remove-product-btn">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            `;
+            <div class="input-group">
+                <input type="text" name="ExampleProducts[${productIndex}]" 
+                       class="form-control product-input" 
+                       placeholder="Product name" required/>
+                <button type="button" class="remove-product-btn">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
         container.appendChild(div);
         productIndex++;
         updateRemoveButtons();
@@ -404,7 +423,7 @@ ViewData["Title"] = "Create Package";
         });
     }
 
-    document.getElementById('createPackageForm').addEventListener('submit', function(e) {
+    document.getElementById('createPackageForm').addEventListener('submit', function (e) {
         if (!validateProducts()) {
             e.preventDefault();
             return false;
@@ -412,11 +431,14 @@ ViewData["Title"] = "Create Package";
         return true;
     });
 
-    // Add input event listeners to validate on typing
-    document.getElementById('productsContainer').addEventListener('input', function(e) {
+    // Validate as user types
+    document.getElementById('productsContainer').addEventListener('input', function (e) {
         if (e.target.classList.contains('product-input')) {
             validateProducts();
         }
     });
+
+    // Initial call to show/hide remove buttons
+    updateRemoveButtons();
 </script>
 }

@@ -6,4 +6,7 @@ public interface IIdentityService
     Task<bool> AuthorizeAsync(string userId, string policyName);
     Task<(bool Success, string UserId)> CreateUserAsync(string userName, string password);
     Task<bool> DeleteUserAsync(string userId);
+    Task<string?> GetUserCafeteriaLocationAsync(string userId);
+    Task<string?> GetUserFullNameAsync(string userId);
+
 }

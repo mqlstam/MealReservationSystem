@@ -16,7 +16,7 @@ namespace Application.Common.Interfaces.Services
         /// <returns>Success or error message (for UI display).</returns>
         Task<string> ReservePackageAsync(int packageId, string userId);
 
-        /// <summary>
+         /// <summary>
         /// Marks the specified package's reservation as picked up.
         /// </summary>
         Task MarkAsPickedUpAsync(int packageId);
@@ -28,3 +28,4 @@ namespace Application.Common.Interfaces.Services
         Task MarkAsNoShowAsync(int packageId);
     }
 }
+

@@ -74,4 +74,26 @@ public class IdentityService : IIdentityService
 
         return result.Succeeded;
     }
+    
+     public async Task<string?> GetUserCafeteriaLocationAsync(string userId)
+     {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return null;
+        }
+         return user.CafeteriaLocation;
+     }
+    
+      public async Task<string?> GetUserFullNameAsync(string userId)
+      {
+          var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return null;
+        }
+        return $"{user.FirstName} {user.LastName}";
+      }
 }

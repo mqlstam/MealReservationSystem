@@ -1,5 +1,5 @@
 using Application.Common.Interfaces;
-using Domain.Entities;
+using Application.Common.Interfaces.Services;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -11,21 +11,15 @@ namespace WebApp.Controllers
     [Authorize]
     public class PackageController : Controller
     {
-        private readonly IPackageRepository _packageRepository;
-        private readonly IReservationRepository _reservationRepository;
-        private readonly IStudentService _studentService;
+        private readonly IReservationService _reservationService;
         private readonly UserManager<ApplicationUser> _userManager;
-
+    
         public PackageController(
-            IPackageRepository packageRepository,
-            IReservationRepository reservationRepository,
-            IStudentService studentService,
+            IReservationService reservationService,
             UserManager<ApplicationUser> userManager)
         {
-            _packageRepository = packageRepository;
-            _reservationRepository = reservationRepository;
-            _studentService = studentService;
-            _userManager = userManager;
+            _reservationService = reservationService;
+             _userManager = userManager;
         }
 
         [HttpPost]
@@ -34,62 +28,17 @@ namespace WebApp.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
-
-            var student = await _studentService.GetStudentByIdentityIdAsync(user.Id);
-            if (student == null)
+    
+            var result = await _reservationService.ReservePackageAsync(id, user.Id);
+    
+            if (result == "Package reserved successfully!")
             {
-                TempData["Error"] = "Student record not found.";
+                TempData["Success"] = result;
                 return RedirectToAction("Index", "Home");
             }
-
-            var package = await _packageRepository.GetByIdAsync(id);
-            if (package == null)
-            {
-                TempData["Error"] = "Package not found.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            if (package.Reservation != null)
-            {
-                TempData["Error"] = "Package already reserved.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            // === [ADDED to finalize US_05] ===
-            // Check if the student already has a reservation for this package's pickup day
-            if (await _reservationRepository.HasReservationForDateAsync(user.Id, package.PickupDateTime.Date))
-            {
-                TempData["Error"] = "You already have a reservation for this date.";
-                return RedirectToAction("Index", "Home");
-            }
-            // === [END addition] ===
-
-            // Check age restriction
-            if (package.IsAdultOnly && !student.IsOfLegalAge)
-            {
-                TempData["Error"] = "You must be 18 or older to reserve this package.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            // Check no-show count
-            if (student.NoShowCount >= 2)
-            {
-                TempData["Error"] = "You have too many no-shows to make a reservation.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            // Create reservation
-            var reservation = new Reservation
-            {
-                PackageId = package.Id,
-                StudentNumber = student.StudentNumber,
-                ReservationDateTime = DateTime.Now
-            };
-
-            await _reservationRepository.AddAsync(reservation);
-            TempData["Success"] = "Package reserved successfully!";
-
-            return RedirectToAction("Index", "Home");
+    
+             TempData["Error"] = result;
+             return RedirectToAction("Index", "Home");
         }
     }
 }

@@ -104,8 +104,11 @@ public static class DependencyInjection
             {
                 options.LoginPath = "/Account/Login";
                 options.LogoutPath = "/Account/Logout";
+                options.ReturnUrlParameter = "returnUrl";
+                options.ExpireTimeSpan = TimeSpan.FromHours(2);
+                options.SlidingExpiration = true;
             });
-            
+        
         services.AddAuthorizationCore();
 
         return services;

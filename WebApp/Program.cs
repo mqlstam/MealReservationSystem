@@ -35,7 +35,6 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
-
 // Migrate and seed database
 using (var scope = app.Services.CreateScope())
 {

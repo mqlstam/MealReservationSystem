@@ -156,7 +156,7 @@ namespace WebApp.Controllers
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Login", "Account");  // Changed from redirecting to Home/Index
         }
 
         private IActionResult RedirectToLocal(string? returnUrl)

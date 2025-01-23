@@ -18,31 +18,21 @@ namespace Tests.UserStories.US02
     {
         private readonly Mock<IPackageManagementService> _mockPackageService;
         private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-        private readonly Mock<ICafeteriaRepository> _mockCafeteriaRepo;
         private readonly PackageManagementController _controller;
         private readonly ApplicationUser _testEmployee;
 
         public CafeteriaEmployeePackageViewTests()
         {
-            // We no longer mock the old IPackageRepository, 
-            // but instead mock the IPackageManagementService.
             _mockPackageService = new Mock<IPackageManagementService>();
 
-            // We still need the cafeteria repo for the controller constructor 
-            // (to display City + cafeteria name on create/edit GET).
-            _mockCafeteriaRepo = new Mock<ICafeteriaRepository>();
-
-            // Setup UserManager mock
             var mockStore = new Mock<IUserStore<ApplicationUser>>();
             _mockUserManager = new Mock<UserManager<ApplicationUser>>(
                 mockStore.Object, null, null, null, null, null, null, null, null
             );
 
-            // Construct the new PackageManagementController
             _controller = new PackageManagementController(
                 _mockPackageService.Object,
-                _mockUserManager.Object,
-                _mockCafeteriaRepo.Object
+                _mockUserManager.Object
             )
             {
                 TempData = new TempDataDictionary(
@@ -51,7 +41,6 @@ namespace Tests.UserStories.US02
                 )
             };
 
-            // Setup test employee
             _testEmployee = new ApplicationUser
             {
                 Id = "test-employee-id",
@@ -59,7 +48,6 @@ namespace Tests.UserStories.US02
                 CafeteriaLocation = CafeteriaLocation.LA.ToString()
             };
 
-            // Setup claims principal for authorization
             var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
             {
                 new Claim(ClaimTypes.NameIdentifier, _testEmployee.Id),
@@ -71,7 +59,6 @@ namespace Tests.UserStories.US02
                 HttpContext = new DefaultHttpContext { User = user }
             };
 
-            // By default, retrieving the user from UserManager returns our testEmployee
             _mockUserManager
                 .Setup(x => x.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
                 .ReturnsAsync(_testEmployee);
@@ -80,41 +67,20 @@ namespace Tests.UserStories.US02
         [Fact]
         public async Task Index_ReturnsViewWithAllPackages_WhenShowOnlyMyCafeteriaIsFalse()
         {
-            // Arrange
-            // We create a PackageListDto with multiple packages 
             var dto = new PackageListDto
             {
                 Packages = new List<PackageManagementDto>
                 {
-                    new()
-                    {
-                        Id = 1,
-                        Name = "Package LA",
-                        CafeteriaLocation = CafeteriaLocation.LA,
-                        PickupDateTime = DateTime.Now.AddDays(1)
-                    },
-                    new()
-                    {
-                        Id = 2,
-                        Name = "Package LD",
-                        CafeteriaLocation = CafeteriaLocation.LD,
-                        PickupDateTime = DateTime.Now.AddDays(1)
-                    },
-                    new()
-                    {
-                        Id = 3,
-                        Name = "Package DB",
-                        CafeteriaLocation = CafeteriaLocation.DB,
-                        PickupDateTime = DateTime.Now.AddDays(2)
-                    }
+                    new() { Id = 1, Name = "Package LA", CafeteriaLocation = CafeteriaLocation.LA },
+                    new() { Id = 2, Name = "Package LD", CafeteriaLocation = CafeteriaLocation.LD },
+                    new() { Id = 3, Name = "Package DB", CafeteriaLocation = CafeteriaLocation.DB }
                 }
             };
 
-            // Mock the service to return this list if showOnlyMyCafeteria = false
             _mockPackageService
                 .Setup(s => s.GetPackageListAsync(
                     _testEmployee.Id,
-                    false,  // showOnlyMyCafeteria
+                    false,
                     It.IsAny<City?>(),
                     It.IsAny<MealType?>(),
                     It.IsAny<decimal?>(),
@@ -122,10 +88,8 @@ namespace Tests.UserStories.US02
                 ))
                 .ReturnsAsync(dto);
 
-            // Act
             var result = await _controller.Index(showOnlyMyCafeteria: false) as ViewResult;
 
-            // Assert
             Assert.NotNull(result);
             var model = Assert.IsType<PackageListViewModel>(result.Model);
             Assert.Equal(3, model.Packages.Count);
@@ -134,37 +98,16 @@ namespace Tests.UserStories.US02
         [Fact]
         public async Task Index_ReturnsViewWithFilteredPackages_WhenShowOnlyMyCafeteriaIsTrue()
         {
-            // Arrange
             var dto = new PackageListDto
             {
                 Packages = new List<PackageManagementDto>
                 {
-                    new()
-                    {
-                        Id = 1,
-                        Name = "Package LA 1",
-                        CafeteriaLocation = CafeteriaLocation.LA,
-                        PickupDateTime = DateTime.Now.AddDays(1)
-                    },
-                    new()
-                    {
-                        Id = 2,
-                        Name = "Package LA 2",
-                        CafeteriaLocation = CafeteriaLocation.LA,
-                        PickupDateTime = DateTime.Now.AddDays(2)
-                    },
-                    new()
-                    {
-                        Id = 3,
-                        Name = "Package LD",
-                        CafeteriaLocation = CafeteriaLocation.LD,
-                        PickupDateTime = DateTime.Now.AddDays(1)
-                    }
+                    new() { Id = 1, Name = "Package LA 1", CafeteriaLocation = CafeteriaLocation.LA },
+                    new() { Id = 2, Name = "Package LA 2", CafeteriaLocation = CafeteriaLocation.LA },
+                    new() { Id = 3, Name = "Package LD",   CafeteriaLocation = CafeteriaLocation.LD }
                 }
             };
 
-            // If showOnlyMyCafeteria = true, the application layer 
-            // returns only packages that match the user’s location, etc.
             _mockPackageService
                 .Setup(s => s.GetPackageListAsync(
                     _testEmployee.Id,
@@ -176,29 +119,24 @@ namespace Tests.UserStories.US02
                 ))
                 .ReturnsAsync(dto);
 
-            // Act
             var result = await _controller.Index(showOnlyMyCafeteria: true) as ViewResult;
 
-            // Assert
             Assert.NotNull(result);
             var model = Assert.IsType<PackageListViewModel>(result.Model);
             Assert.Equal(3, model.Packages.Count);
-            // And so on, if we wanted to check specific location, 
-            // we'd verify that the service returned only LA, etc.
         }
 
         [Fact]
         public async Task Index_SortsPackagesByPickupDate_Ascending()
         {
-            // Arrange
             var now = DateTime.Now;
             var dto = new PackageListDto
             {
                 Packages = new List<PackageManagementDto>
                 {
-                    new() { Id = 1, Name = "Later Package",     PickupDateTime = now.AddDays(3) },
-                    new() { Id = 2, Name = "Earlier Package",   PickupDateTime = now.AddDays(1) },
-                    new() { Id = 3, Name = "Middle Package",    PickupDateTime = now.AddDays(2) }
+                    new() { Id = 1, Name = "Later Package",   PickupDateTime = now.AddDays(3) },
+                    new() { Id = 2, Name = "Earlier Package", PickupDateTime = now.AddDays(1) },
+                    new() { Id = 3, Name = "Middle Package",  PickupDateTime = now.AddDays(2) }
                 }
             };
 
@@ -213,10 +151,8 @@ namespace Tests.UserStories.US02
                 ))
                 .ReturnsAsync(dto);
 
-            // Act
             var result = await _controller.Index() as ViewResult;
 
-            // Assert
             Assert.NotNull(result);
             var model = Assert.IsType<PackageListViewModel>(result.Model);
             var ordered = model.Packages.ToList();
@@ -229,10 +165,9 @@ namespace Tests.UserStories.US02
         [Fact]
         public async Task Index_ReturnsEmptyList_WhenNoPackagesExist()
         {
-            // Arrange
             var dto = new PackageListDto
             {
-                Packages = new List<PackageManagementDto>() // empty
+                Packages = new List<PackageManagementDto>()
             };
             _mockPackageService
                 .Setup(s => s.GetPackageListAsync(
@@ -245,10 +180,8 @@ namespace Tests.UserStories.US02
                 ))
                 .ReturnsAsync(dto);
 
-            // Act
             var result = await _controller.Index() as ViewResult;
 
-            // Assert
             Assert.NotNull(result);
             var model = Assert.IsType<PackageListViewModel>(result.Model);
             Assert.Empty(model.Packages);
@@ -257,7 +190,6 @@ namespace Tests.UserStories.US02
         [Fact]
         public async Task Index_IncludesReservedPackages_InResults()
         {
-            // Arrange
             var dto = new PackageListDto
             {
                 Packages = new List<PackageManagementDto>
@@ -277,10 +209,8 @@ namespace Tests.UserStories.US02
                 ))
                 .ReturnsAsync(dto);
 
-            // Act
             var result = await _controller.Index() as ViewResult;
 
-            // Assert
             Assert.NotNull(result);
             var model = Assert.IsType<PackageListViewModel>(result.Model);
             Assert.Equal(2, model.Packages.Count);
@@ -290,25 +220,18 @@ namespace Tests.UserStories.US02
         [Fact]
         public async Task Index_ReturnsChallenge_WhenUserNotAuthenticated()
         {
-            // Arrange
             _mockUserManager
                 .Setup(x => x.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
                 .ReturnsAsync((ApplicationUser)null);
 
-            // Act
             var result = await _controller.Index();
 
-            // Assert
             Assert.IsType<ChallengeResult>(result);
         }
 
         [Fact]
         public async Task Index_HandlesInvalidCafeteriaLocation_Gracefully()
         {
-            // If the user’s CafeteriaLocation parse fails, the 
-            // application layer might still show all packages or 
-            // it might return an empty list. We’ll test it returns all.
-
             _testEmployee.CafeteriaLocation = "InvalidLocation";
 
             var dto = new PackageListDto
@@ -331,10 +254,8 @@ namespace Tests.UserStories.US02
                 ))
                 .ReturnsAsync(dto);
 
-            // Act
             var result = await _controller.Index(showOnlyMyCafeteria: true) as ViewResult;
 
-            // Assert
             Assert.NotNull(result);
             var model = Assert.IsType<PackageListViewModel>(result.Model);
             Assert.Equal(2, model.Packages.Count);
@@ -343,7 +264,6 @@ namespace Tests.UserStories.US02
         [Fact]
         public async Task Index_PreservesPackageDetails_InViewModel()
         {
-            // Arrange
             var dto = new PackageListDto
             {
                 Packages = new List<PackageManagementDto>
@@ -365,17 +285,15 @@ namespace Tests.UserStories.US02
                 .Setup(s => s.GetPackageListAsync(
                     It.IsAny<string>(),
                     It.IsAny<bool>(),
-                    It.IsAny<Domain.Enums.City?>(),
-                    It.IsAny<Domain.Enums.MealType?>(),
+                    It.IsAny<City?>(),
+                    It.IsAny<MealType?>(),
                     It.IsAny<decimal?>(),
                     It.IsAny<bool>()
                 ))
                 .ReturnsAsync(dto);
 
-            // Act
             var result = await _controller.Index() as ViewResult;
 
-            // Assert
             Assert.NotNull(result);
             var model = Assert.IsType<PackageListViewModel>(result.Model);
             var vm = model.Packages.First();

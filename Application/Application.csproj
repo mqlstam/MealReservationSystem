@@ -16,10 +16,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Common\Services\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Remove="Common\Services\IServerTimeService.cs" />
     </ItemGroup>
 

@@ -463,6 +463,8 @@ namespace WebApp.Controllers
             }
 
             package.Reservation.IsNoShow = false;
+            package.Reservation.IsPickedUp = true; // Correct addition
+
 
             var student = await _studentService.GetStudentByNumberAsync(package.Reservation.StudentNumber);
             if (student != null && student.NoShowCount > 0)

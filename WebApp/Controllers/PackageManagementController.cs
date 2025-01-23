@@ -6,11 +6,11 @@ using WebApp.Models.Package;
 using Application.Services.PackageManagement;
 using Application.Services.PackageManagement.DTOs;
 using Infrastructure.Identity;
-using Application.Common.Interfaces; // Needed for ICafeteriaRepository
-using System.Threading.Tasks;
+using Application.Common.Interfaces;
+using System.Collections.Generic;
 using System;
 using System.Linq;
-using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace WebApp.Controllers
 {
@@ -19,16 +19,14 @@ namespace WebApp.Controllers
     {
         private readonly IPackageManagementService _packageService;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ICafeteriaRepository _cafeteriaRepository;
 
         public PackageManagementController(
             IPackageManagementService packageService,
-            UserManager<ApplicationUser> userManager,
-            ICafeteriaRepository cafeteriaRepository)
+            UserManager<ApplicationUser> userManager
+        )
         {
             _packageService = packageService;
             _userManager = userManager;
-            _cafeteriaRepository = cafeteriaRepository;
         }
 
         public async Task<IActionResult> Index(
@@ -36,7 +34,8 @@ namespace WebApp.Controllers
             City? cityFilter = null,
             MealType? typeFilter = null,
             decimal? maxPrice = null,
-            bool showExpired = false)
+            bool showExpired = false
+        )
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
@@ -57,57 +56,48 @@ namespace WebApp.Controllers
                 MaxPriceFilter = dto.MaxPriceFilter,
                 ShowExpired = dto.ShowExpired,
                 Packages = dto.Packages.Select(d => new PackageManagementViewModel
-                    {
-                        Id = d.Id,
-                        Name = d.Name,
-                        City = d.City,
-                        CafeteriaLocation = d.CafeteriaLocation,
-                        PickupDateTime = d.PickupDateTime,
-                        LastReservationDateTime = d.LastReservationDateTime,
-                        IsAdultOnly = d.IsAdultOnly,
-                        Price = d.Price,
-                        MealType = d.MealType,
-                        Products = d.Products,
-                        IsReserved = d.IsReserved,
-                        IsPickedUp = d.IsPickedUp,
-                        IsNoShow = d.IsNoShow,
-                        ReservedBy = d.ReservedBy
-                    })
-                    .OrderBy(p => p.PickupDateTime)
-                    .ToList()
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    City = d.City,
+                    CafeteriaLocation = d.CafeteriaLocation,
+                    PickupDateTime = d.PickupDateTime,
+                    LastReservationDateTime = d.LastReservationDateTime,
+                    IsAdultOnly = d.IsAdultOnly,
+                    Price = d.Price,
+                    MealType = d.MealType,
+                    Products = d.Products,
+                    IsReserved = d.IsReserved,
+                    IsPickedUp = d.IsPickedUp,
+                    IsNoShow = d.IsNoShow,
+                    ReservedBy = d.ReservedBy
+                })
+                .OrderBy(p => p.PickupDateTime)
+                .ToList()
             };
 
             ViewData["ShowOnlyMyCafeteria"] = showOnlyMyCafeteria;
             return View(vm);
         }
-        
+
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            // Retrieve the logged-in user
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            // Parse the cafeteria location from the user
-            if (!Enum.TryParse(user.CafeteriaLocation, out CafeteriaLocation locationEnum))
-            {
-                locationEnum = CafeteriaLocation.LA; // fallback
-            }
-
-            // Fetch the cafeteria from the repo so we can display City + Location
-            var cafeteria = await _cafeteriaRepository.GetByLocationAsync(locationEnum);
-            if (cafeteria == null)
+            var (found, cafeteriaDto, error) = await _packageService.GetEmployeeCafeteriaAsync(user.Id);
+            if (!found)
             {
                 ViewBag.CityName = "Unknown City";
                 ViewBag.CafeteriaLocationName = "Unknown Cafeteria";
             }
             else
             {
-                ViewBag.CityName = cafeteria.City.ToString();
-                ViewBag.CafeteriaLocationName = cafeteria.Location.ToString();
+                ViewBag.CityName = cafeteriaDto.CityName;
+                ViewBag.CafeteriaLocationName = cafeteriaDto.CafeteriaLocationName;
             }
 
-            // Return default times for the create form
             return View(new CreatePackageViewModel
             {
                 PickupDateTime = DateTime.Now.AddHours(1),
@@ -125,7 +115,6 @@ namespace WebApp.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            // Map from CreatePackageViewModel (web) -> CreatePackageDto (application)
             var dto = new CreatePackageDto
             {
                 Name = model.Name,
@@ -152,9 +141,7 @@ namespace WebApp.Controllers
         public async Task<IActionResult> Edit(int id)
         {
             var (found, reserved, dto, errorMsg) = await _packageService.GetEditPackageAsync(id);
-            if (!found)
-                return NotFound();
-
+            if (!found) return NotFound();
             if (reserved)
             {
                 TempData["Error"] = errorMsg;
@@ -169,27 +156,21 @@ namespace WebApp.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            if (!Enum.TryParse(user.CafeteriaLocation, out CafeteriaLocation locationEnum))
-            {
-                locationEnum = CafeteriaLocation.LA;
-            }
-
-            var cafeteria = await _cafeteriaRepository.GetByLocationAsync(locationEnum);
-            if (cafeteria == null)
+            var (foundCaf, cafeteriaDto, err) = await _packageService.GetEmployeeCafeteriaAsync(user.Id);
+            if (!foundCaf)
             {
                 ViewBag.CityName = "Unknown City";
                 ViewBag.CafeteriaLocationName = "Unknown Cafeteria";
             }
             else
             {
-                ViewBag.CityName = cafeteria.City.ToString();
-                ViewBag.CafeteriaLocationName = cafeteria.Location.ToString();
+                ViewBag.CityName = cafeteriaDto.CityName;
+                ViewBag.CafeteriaLocationName = cafeteriaDto.CafeteriaLocationName;
             }
 
-            // Map from CreatePackageDto -> CreatePackageViewModel
             var vm = new CreatePackageViewModel
             {
-                Name = dto!.Name,
+                Name = dto.Name,
                 PickupDateTime = dto.PickupDateTime,
                 LastReservationDateTime = dto.LastReservationDateTime,
                 IsAdultOnly = dto.IsAdultOnly,
@@ -229,22 +210,19 @@ namespace WebApp.Controllers
             var (success, err) = await _packageService.UpdatePackageAsync(id, dto, user.Id);
             if (!success)
             {
-                // The test wants a redirect if editing fails.
                 TempData["Error"] = err;
-                // Return a redirect, not a View:
                 return RedirectToAction(nameof(Index));
             }
 
             TempData["Success"] = "Package updated successfully.";
             return RedirectToAction(nameof(Index));
         }
-        
+
         [HttpGet]
         public async Task<IActionResult> Delete(int id)
         {
             var (found, reserved, dto, errorMsg) = await _packageService.GetEditPackageAsync(id);
-            if (!found)
-                return NotFound();
+            if (!found) return NotFound();
 
             var vm = new PackageManagementViewModel
             {

@@ -19,4 +19,8 @@
       <Compile Remove="Common\Services\IServerTimeService.cs" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Common\" />
+    </ItemGroup>
+
 </Project>

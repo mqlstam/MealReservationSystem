@@ -86,6 +86,9 @@ public static class DependencyInjection
         services.AddScoped<IPackageViewService, PackageViewService>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<INoShowService, NoShowService>();
+        services.AddScoped<Application.Services.PackageManagement.ICurrentUserService, Infrastructure.Services.Identity.CurrentUserService>();
+        services.AddScoped<Application.Services.PackageManagement.IPackageManagementService, Application.Services.PackageManagement.PackageManagementService>();
+
 
         // Register Infrastructure Services/Repositories
         services.AddScoped<IApplicationDbContext>(provider => 

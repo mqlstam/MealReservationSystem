@@ -1,6 +1,6 @@
 @model WebApp.Models.Package.CreatePackageViewModel
 @{
-ViewData["Title"] = "Edit Package";
+    ViewData["Title"] = "Edit Package";
 }
 
 <style>
@@ -172,13 +172,14 @@ ViewData["Title"] = "Edit Package";
             <form asp-action="Edit" method="post" id="editPackageForm">
                 @if (!ViewContext.ModelState.IsValid)
                 {
-                <div class="validation-summary">
-                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                </div>
+                    <div class="validation-summary">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    </div>
                 }
 
                 <input type="hidden" name="id" value="@ViewBag.PackageId" />
 
+                <!-- Basic Info -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-info-circle"></i>
@@ -194,7 +195,8 @@ ViewData["Title"] = "Edit Package";
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <select asp-for="MealType" asp-items="Html.GetEnumSelectList<Domain.Enums.MealType>()"
+                                <select asp-for="MealType"
+                                        asp-items="Html.GetEnumSelectList<Domain.Enums.MealType>()"
                                         class="form-select">
                                     <option value="">Select Type</option>
                                 </select>
@@ -205,6 +207,7 @@ ViewData["Title"] = "Edit Package";
                     </div>
                 </div>
 
+                <!-- Location: show read-only from ViewBag -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-geo-alt"></i>
@@ -212,29 +215,27 @@ ViewData["Title"] = "Edit Package";
                     </h5>
                     <div class="row">
                         <div class="col-md-6">
+                            <!-- Show read-only city info -->
                             <div class="form-floating">
-                                <select asp-for="City" asp-items="Html.GetEnumSelectList<Domain.Enums.City>()"
-                                        class="form-select">
-                                    <option value="">Select City</option>
-                                </select>
-                                <label asp-for="City">City</label>
-                                <span asp-validation-for="City" class="text-danger"></span>
+                                <input type="text" class="form-control"
+                                       value='@(ViewBag.CityName ?? "Unknown City")'
+                                       disabled />
+                                <label>City</label>
                             </div>
                         </div>
                         <div class="col-md-6">
+                            <!-- Show read-only cafeteria location info -->
                             <div class="form-floating">
-                                <select asp-for="CafeteriaLocation"
-                                        asp-items="Html.GetEnumSelectList<Domain.Enums.CafeteriaLocation>()"
-                                        class="form-select">
-                                    <option value="">Select Location</option>
-                                </select>
-                                <label asp-for="CafeteriaLocation">Cafeteria Location</label>
-                                <span asp-validation-for="CafeteriaLocation" class="text-danger"></span>
+                                <input type="text" class="form-control"
+                                       value='@(ViewBag.CafeteriaLocationName ?? "Unknown Cafeteria")'
+                                       disabled />
+                                <label>Cafeteria Location</label>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Timing & Price -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-clock"></i>
@@ -267,6 +268,7 @@ ViewData["Title"] = "Edit Package";
                     </div>
                 </div>
 
+                <!-- Products -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-box"></i>
@@ -276,16 +278,16 @@ ViewData["Title"] = "Edit Package";
                         <div id="productsContainer">
                             @for (int i = 0; i < Model.ExampleProducts.Count; i++)
                             {
-                            <div class="product-input-group">
-                                <div class="input-group">
-                                    <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
-                                           value="@Model.ExampleProducts[i]"
-                                           placeholder="Product name" required/>
-                                    <button type="button" class="remove-product-btn" onclick="removeProduct(this)">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                <div class="product-input-group">
+                                    <div class="input-group">
+                                        <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
+                                               value="@Model.ExampleProducts[i]"
+                                               placeholder="Product name" required />
+                                        <button type="button" class="remove-product-btn" onclick="removeProduct(this)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
                             }
                         </div>
                         <div id="productsError" class="text-danger"></div>
@@ -296,9 +298,10 @@ ViewData["Title"] = "Edit Package";
                     </div>
                 </div>
 
+                <!-- Adult-Only Toggle -->
                 <div class="adult-only-toggle">
                     <div class="form-check">
-                        <input asp-for="IsAdultOnly" class="form-check-input" type="checkbox"/>
+                        <input asp-for="IsAdultOnly" class="form-check-input" type="checkbox" />
                         <label class="form-check-label" asp-for="IsAdultOnly">
                             <i class="bi bi-shield-lock me-2"></i>
                             This package is for adults only (18+)
@@ -306,6 +309,7 @@ ViewData["Title"] = "Edit Package";
                     </div>
                 </div>
 
+                <!-- Action Buttons -->
                 <div class="action-buttons">
                     <button type="submit" class="submit-btn">
                         <i class="bi bi-check-circle"></i>
@@ -322,7 +326,7 @@ ViewData["Title"] = "Edit Package";
 </div>
 
 @section Scripts {
-<partial name="_ValidationScriptsPartial"/>
+<partial name="_ValidationScriptsPartial" />
 <script>
     let productIndex = @Model.ExampleProducts.Count;
 
@@ -353,20 +357,20 @@ ViewData["Title"] = "Edit Package";
         const div = document.createElement('div');
         div.className = 'product-input-group';
         div.innerHTML = `
-                <div class="input-group">
-                    <input type="text" name="ExampleProducts[${productIndex}]" 
-                           class="form-control product-input" 
-                           placeholder="Product name" required/>
-                    <button type="button" class="remove-product-btn">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            `;
+            <div class="input-group">
+                <input type="text" name="ExampleProducts[${productIndex}]" 
+                       class="form-control product-input"
+                       placeholder="Product name" required />
+                <button type="button" class="remove-product-btn">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
         container.appendChild(div);
         productIndex++;
         updateRemoveButtons();
 
-        // Add click handler for the new remove button
+        // Hook for the new remove button
         const newRemoveButton = div.querySelector('.remove-product-btn');
         newRemoveButton.onclick = () => removeProduct(newRemoveButton);
     }
@@ -405,14 +409,14 @@ ViewData["Title"] = "Edit Package";
         return true;
     });
 
-    // Add input event listeners to validate on typing
+    // Validate on input
     document.getElementById('productsContainer').addEventListener('input', function(e) {
         if (e.target.classList.contains('product-input')) {
             validateProducts();
         }
     });
 
-    // Initial call to show/hide remove buttons
+    // Initial
     updateRemoveButtons();
 </script>
 }

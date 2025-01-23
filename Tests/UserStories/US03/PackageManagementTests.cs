@@ -1,393 +1,377 @@
 using System.Security.Claims;
-using Domain.Entities;
 using Domain.Enums;
+using Domain.Entities;
 using Infrastructure.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 using WebApp.Controllers;
 using WebApp.Models.Package;
+using Xunit;
+using Application.Services.PackageManagement;
+using Application.Services.PackageManagement.DTOs;
 
-namespace Tests.UserStories.US03;
-
-public class PackageManagementTests
+namespace Tests.UserStories.US03
 {
-    private readonly Mock<IPackageRepository> _mockPackageRepo;
-    private readonly Mock<ICafeteriaRepository> _mockCafeteriaRepo;
-    private readonly Mock<IStudentService> _mockStudentService;
-    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly PackageManagementController _controller;
-    private readonly ApplicationUser _testEmployee;
-    private readonly Cafeteria _testCafeteria;
-
-    public PackageManagementTests()
+    public class PackageManagementTests
     {
-        _mockPackageRepo = new Mock<IPackageRepository>();
-        _mockCafeteriaRepo = new Mock<ICafeteriaRepository>();
-        _mockStudentService = new Mock<IStudentService>();
-        
-        var mockStore = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            mockStore.Object,
-            null, null, null, null, null, null, null, null
-        );
+        // Instead of mocking repositories directly, we now mock the IPackageManagementService
+        // because that's what the new PackageManagementController uses in the 'new way'.
+        private readonly Mock<IPackageManagementService> _mockPackageService;
+        private readonly Mock<ICafeteriaRepository> _mockCafeteriaRepo;
+        private readonly Mock<IStudentService> _mockStudentService;
+        private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+        private readonly PackageManagementController _controller;
+        private readonly ApplicationUser _testEmployee;
+        private readonly Cafeteria _testCafeteria;
 
-        _testEmployee = new ApplicationUser
+        public PackageManagementTests()
         {
-            Id = "test-employee-id",
-            UserName = "test@employee.com",
-            CafeteriaLocation = CafeteriaLocation.LA.ToString()
-        };
+            _mockPackageService = new Mock<IPackageManagementService>();
+            _mockCafeteriaRepo = new Mock<ICafeteriaRepository>();
+            _mockStudentService = new Mock<IStudentService>();
 
-        _testCafeteria = new Cafeteria
-        {
-            Id = 1,
-            City = City.Breda,
-            Location = CafeteriaLocation.LA,
-            OffersHotMeals = true
-        };
+            var mockStore = new Mock<IUserStore<ApplicationUser>>();
+            _mockUserManager = new Mock<UserManager<ApplicationUser>>(
+                mockStore.Object, null, null, null, null, null, null, null, null
+            );
 
-        // Setup default mocks
-        _mockUserManager.Setup(x => x.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
-            .ReturnsAsync(_testEmployee);
-
-        _mockCafeteriaRepo.Setup(x => x.GetByLocationAsync(CafeteriaLocation.LA))
-            .ReturnsAsync(_testCafeteria);
-
-        // Setup controller with TempData
-        _controller = new PackageManagementController(
-            _mockPackageRepo.Object,
-            _mockCafeteriaRepo.Object,
-            _mockStudentService.Object,
-            _mockUserManager.Object)
-        {
-            TempData = new TempDataDictionary(
-                new DefaultHttpContext(), 
-                Mock.Of<ITempDataProvider>()
-            )
-        };
-
-        // Setup controller context
-        var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, _testEmployee.Id),
-            new Claim(ClaimTypes.Role, "CafeteriaEmployee")
-        }));
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = user }
-        };
-    }
-
-    [Fact]
-    public async Task Create_Success_WhenValidPackageWithinTwoDays()
-    {
-        // Arrange
-        var model = new CreatePackageViewModel
-        {
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(1),
-            LastReservationDateTime = DateTime.Now.AddHours(23),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string> { "Product 1", "Product 2" }
-        };
-
-        _mockPackageRepo.Setup(x => x.AddAsync(It.IsAny<Package>()))
-            .ReturnsAsync((Package p) => 
+            _testEmployee = new ApplicationUser
             {
-                p.Id = 1;
-                p.Cafeteria = _testCafeteria;
-                return p;
-            });
+                Id = "test-employee-id",
+                UserName = "test@employee.com",
+                CafeteriaLocation = CafeteriaLocation.LA.ToString()
+            };
 
-        // Act
-        var result = await _controller.Create(model);
+            _testCafeteria = new Cafeteria
+            {
+                Id = 1,
+                City = City.Breda,
+                Location = CafeteriaLocation.LA,
+                OffersHotMeals = true
+            };
 
-        // Assert
-        var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal("Index", redirectResult.ActionName);
-        _mockPackageRepo.Verify(x => x.AddAsync(It.IsAny<Package>()), Times.Once);
-    }
+            // By default, retrieving the user from UserManager returns our _testEmployee
+            _mockUserManager.Setup(x => x.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
+                .ReturnsAsync(_testEmployee);
 
-    [Fact]
-    public async Task Create_Fails_WhenPickupDateMoreThanTwoDaysAhead()
-    {
-        // Arrange
-        var model = new CreatePackageViewModel
+            // By default, the cafeteria repo returns the test cafeteria
+            _mockCafeteriaRepo.Setup(x => x.GetByLocationAsync(CafeteriaLocation.LA))
+                .ReturnsAsync(_testCafeteria);
+
+            // Construct controller
+            _controller = new PackageManagementController(
+                _mockPackageService.Object,
+                _mockUserManager.Object,
+                _mockCafeteriaRepo.Object
+            )
+            {
+                TempData = new TempDataDictionary(
+                    new DefaultHttpContext(),
+                    Mock.Of<ITempDataProvider>()
+                )
+            };
+
+            // Setup controller context with claims
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, _testEmployee.Id),
+                new Claim(ClaimTypes.Role, "CafeteriaEmployee")
+            }));
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = user }
+            };
+        }
+
+        [Fact]
+        public async Task Create_Success_WhenValidPackageWithinTwoDays()
         {
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(3),
-            LastReservationDateTime = DateTime.Now.AddDays(2),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string> { "Product 1" }
-        };
+            // Arrange
+            var model = new CreatePackageViewModel
+            {
+                Name = "Test Package",
+                PickupDateTime = DateTime.Now.AddDays(1),
+                LastReservationDateTime = DateTime.Now.AddHours(23),
+                Price = 5.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string> { "Product 1", "Product 2" }
+            };
 
-        _controller.ModelState.AddModelError("", "Packages can only be created maximum 2 days in advance");
+            // We mock the application service to indicate success
+            _mockPackageService
+                .Setup(s => s.CreatePackageAsync(
+                    _testEmployee.Id,
+                    It.IsAny<CreatePackageDto>()
+                ))
+                .ReturnsAsync((true, "Package created successfully."));
 
-        // Act
-        var result = await _controller.Create(model);
+            // Act
+            var result = await _controller.Create(model);
 
-        // Assert
-        var viewResult = Assert.IsType<ViewResult>(result);
-        var modelState = viewResult.ViewData.ModelState;
-        Assert.False(modelState.IsValid);
-        Assert.Contains(modelState.Values, v => 
-            v.Errors.Any(e => e.ErrorMessage == "Packages can only be created maximum 2 days in advance"));
-    }
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
 
-    [Fact]
-    public async Task Create_Fails_WhenLocationMismatch()
-    {
-        // Arrange
-        var model = new CreatePackageViewModel
+            _mockPackageService.Verify(s =>
+                s.CreatePackageAsync(_testEmployee.Id, It.IsAny<CreatePackageDto>()),
+                Times.Once
+            );
+        }
+
+        [Fact]
+        public async Task Create_Fails_WhenPickupDateMoreThanTwoDaysAhead()
         {
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LD,
-            PickupDateTime = DateTime.Now.AddDays(1),
-            LastReservationDateTime = DateTime.Now.AddHours(23),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string> { "Product 1" }
-        };
+            // Arrange
+            var model = new CreatePackageViewModel
+            {
+                Name = "Test Package",
+                PickupDateTime = DateTime.Now.AddDays(3),
+                LastReservationDateTime = DateTime.Now.AddDays(2),
+                Price = 5.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string> { "Product 1" }
+            };
 
-        _controller.ModelState.AddModelError("", "Package location must match your assigned location");
+            // We force an error in ModelState (the "two days in advance" rule)
+            _controller.ModelState.AddModelError("", "Packages can only be created maximum 2 days in advance");
 
-        // Act
-        var result = await _controller.Create(model);
+            // We also mock the service to return false
+            _mockPackageService
+                .Setup(s => s.CreatePackageAsync(
+                    _testEmployee.Id,
+                    It.IsAny<CreatePackageDto>()
+                ))
+                .ReturnsAsync((false, "Packages can only be created maximum 2 days in advance"));
 
-        // Assert
-        var viewResult = Assert.IsType<ViewResult>(result);
-        Assert.False(viewResult.ViewData.ModelState.IsValid);
-    }
+            // Act
+            var result = await _controller.Create(model);
 
-    [Fact]
-    public async Task Create_Fails_WhenNoProductsProvided()
-    {
-        // Arrange
-        var model = new CreatePackageViewModel
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.False(viewResult.ViewData.ModelState.IsValid);
+
+            Assert.Contains(
+                "Packages can only be created maximum 2 days in advance",
+                viewResult.ViewData.ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+            );
+        }
+
+        [Fact]
+        public async Task Create_Fails_WhenLocationMismatch()
         {
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(1),
-            LastReservationDateTime = DateTime.Now.AddHours(23),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string>()
-        };
+            // Arrange
+            var model = new CreatePackageViewModel
+            {
+                Name = "Test Package",
+                PickupDateTime = DateTime.Now.AddDays(1),
+                LastReservationDateTime = DateTime.Now.AddHours(23),
+                Price = 5.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string> { "Product 1" }
+            };
 
-        _controller.ModelState.AddModelError("ExampleProducts", "At least one product is required");
+            // Suppose the service fails because the location mismatched
+            _controller.ModelState.AddModelError("", "Package location must match your assigned location");
+            _mockPackageService
+                .Setup(s => s.CreatePackageAsync(_testEmployee.Id, It.IsAny<CreatePackageDto>()))
+                .ReturnsAsync((false, "Package location must match your assigned location"));
 
-        // Act
-        var result = await _controller.Create(model);
+            // Act
+            var result = await _controller.Create(model);
 
-        // Assert
-        var viewResult = Assert.IsType<ViewResult>(result);
-        Assert.Contains("At least one product is required", 
-            viewResult.ViewData.ModelState["ExampleProducts"].Errors.Select(e => e.ErrorMessage));
-    }
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.False(viewResult.ViewData.ModelState.IsValid);
+        }
 
-    [Fact]
-    public async Task Create_Fails_WhenLastReservationAfterPickup()
-    {
-        // Arrange
-        var model = new CreatePackageViewModel
+        [Fact]
+        public async Task Create_Fails_WhenNoProductsProvided()
         {
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddHours(1),
-            LastReservationDateTime = DateTime.Now.AddHours(2),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string> { "Product 1" }
-        };
+            // Arrange
+            var model = new CreatePackageViewModel
+            {
+                Name = "Test Package",
+                PickupDateTime = DateTime.Now.AddDays(1),
+                LastReservationDateTime = DateTime.Now.AddHours(23),
+                Price = 5.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string>()
+            };
 
-        _controller.ModelState.AddModelError("LastReservationDateTime", "Last reservation time must be before pickup time");
+            _controller.ModelState.AddModelError("ExampleProducts", "At least one product is required");
+            _mockPackageService
+                .Setup(s => s.CreatePackageAsync(_testEmployee.Id, It.IsAny<CreatePackageDto>()))
+                .ReturnsAsync((false, "At least one product is required"));
 
-        // Act
-        var result = await _controller.Create(model);
+            // Act
+            var result = await _controller.Create(model);
 
-        // Assert
-        var viewResult = Assert.IsType<ViewResult>(result);
-        Assert.False(viewResult.ViewData.ModelState.IsValid);
-    }
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.Contains(
+                "At least one product is required",
+                viewResult.ViewData.ModelState["ExampleProducts"].Errors.Select(e => e.ErrorMessage)
+            );
+        }
 
-    [Fact]
-    public async Task Create_HandlesInvalidCafeteriaLocation()
-    {
-        // Arrange
-        _mockCafeteriaRepo.Setup(x => x.GetByLocationAsync(CafeteriaLocation.LA))
-            .ReturnsAsync((Cafeteria)null);
-
-        var model = new CreatePackageViewModel
+        [Fact]
+        public async Task Create_Fails_WhenLastReservationAfterPickup()
         {
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(1),
-            LastReservationDateTime = DateTime.Now.AddHours(23),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string> { "Product 1" }
-        };
+            // Arrange
+            var model = new CreatePackageViewModel
+            {
+                Name = "Test Package",
+                PickupDateTime = DateTime.Now.AddHours(1),
+                LastReservationDateTime = DateTime.Now.AddHours(2),
+                Price = 5.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string> { "Product 1" }
+            };
 
-        // Act
-        var result = await _controller.Create(model);
+            _controller.ModelState.AddModelError("LastReservationDateTime", "Last reservation time must be before pickup time");
+            _mockPackageService
+                .Setup(s => s.CreatePackageAsync(_testEmployee.Id, It.IsAny<CreatePackageDto>()))
+                .ReturnsAsync((false, "Last reservation time must be before pickup time"));
 
-        // Assert
-        var viewResult = Assert.IsType<ViewResult>(result);
-        Assert.False(viewResult.ViewData.ModelState.IsValid);
-    }
+            // Act
+            var result = await _controller.Create(model);
 
-    [Fact]
-    public async Task Edit_Success_WhenPackageNotReserved()
-    {
-        // Arrange
-        var existingPackage = new Package
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.False(viewResult.ViewData.ModelState.IsValid);
+        }
+
+        [Fact]
+        public async Task Create_HandlesInvalidCafeteriaLocation()
         {
-            Id = 1,
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(1),
-            LastReservationDateTime = DateTime.Now.AddHours(23),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            Products = new List<Product> { new() { Name = "Product 1" } },
-            CafeteriaId = _testCafeteria.Id,
-            Cafeteria = _testCafeteria
-        };
+            // Arrange
+            _mockCafeteriaRepo
+                .Setup(x => x.GetByLocationAsync(CafeteriaLocation.LA))
+                .ReturnsAsync((Cafeteria)null);
 
-        _mockPackageRepo.Setup(x => x.GetByIdAsync(1))
-            .ReturnsAsync(existingPackage);
+            var model = new CreatePackageViewModel
+            {
+                Name = "Test Package",
+                PickupDateTime = DateTime.Now.AddDays(1),
+                LastReservationDateTime = DateTime.Now.AddHours(23),
+                Price = 5.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string> { "Product 1" }
+            };
 
-        var model = new CreatePackageViewModel
+            // Suppose the service also fails
+            _mockPackageService
+                .Setup(s => s.CreatePackageAsync(_testEmployee.Id, It.IsAny<CreatePackageDto>()))
+                .ReturnsAsync((false, "Unable to find your cafeteria location."));
+
+            // Act
+            var result = await _controller.Create(model);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(result);
+            Assert.False(viewResult.ViewData.ModelState.IsValid);
+        }
+
+        [Fact]
+        public async Task Edit_Success_WhenPackageNotReserved()
         {
-            Name = "Updated Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(1),
-            LastReservationDateTime = DateTime.Now.AddHours(23),
-            Price = 6.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string> { "Updated Product" }
-        };
+            // Suppose the "edit" GET call was successful, and for the POST we want success
+            _mockPackageService
+                .Setup(s => s.UpdatePackageAsync(
+                    1,
+                    It.IsAny<CreatePackageDto>(),
+                    _testEmployee.Id
+                ))
+                .ReturnsAsync((true, "Package updated successfully."));
 
-        _mockPackageRepo.Setup(x => x.UpdateAsync(It.IsAny<Package>()))
-            .Returns(Task.CompletedTask);
+            var model = new CreatePackageViewModel
+            {
+                Name = "Updated Package",
+                PickupDateTime = DateTime.Now.AddDays(1),
+                LastReservationDateTime = DateTime.Now.AddHours(23),
+                Price = 6.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string> { "Updated Product" }
+            };
 
-        // Act
-        var result = await _controller.Edit(1, model);
+            // Act
+            var result = await _controller.Edit(1, model);
 
-        // Assert
-        var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal("Index", redirectResult.ActionName);
-    }
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+        }
 
-    [Fact]
-    public async Task Edit_Fails_WhenPackageReserved()
-    {
-        // Arrange
-        var existingPackage = new Package
+        [Fact]
+        public async Task Edit_Fails_WhenPackageReserved()
         {
-            Id = 1,
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            Reservation = new Reservation { StudentNumber = "123456" },
-            CafeteriaId = _testCafeteria.Id,
-            Cafeteria = _testCafeteria
-        };
+            // Suppose the application layer says "Cannot edit a package that is reserved"
+            _mockPackageService
+                .Setup(s => s.UpdatePackageAsync(
+                    1,
+                    It.IsAny<CreatePackageDto>(),
+                    _testEmployee.Id
+                ))
+                .ReturnsAsync((false, "Cannot edit a package that is already reserved."));
 
-        _mockPackageRepo.Setup(x => x.GetByIdAsync(1))
-            .ReturnsAsync(existingPackage);
+            var model = new CreatePackageViewModel
+            {
+                Name = "Updated Package",
+                PickupDateTime = DateTime.Now.AddDays(1),
+                LastReservationDateTime = DateTime.Now.AddHours(23),
+                Price = 5.00m,
+                MealType = MealType.BreadAssortment,
+                ExampleProducts = new List<string> { "Product 1" }
+            };
 
-        var model = new CreatePackageViewModel
+            // Act
+            var result = await _controller.Edit(1, model);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            Assert.Equal("Cannot edit a package that is already reserved.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Delete_Success_WhenPackageNotReserved()
         {
-            Name = "Updated Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            PickupDateTime = DateTime.Now.AddDays(1),
-            LastReservationDateTime = DateTime.Now.AddHours(23),
-            Price = 5.00m,
-            MealType = MealType.BreadAssortment,
-            ExampleProducts = new List<string> { "Product 1" }
-        };
+            // Suppose the service says the package is successfully deleted
+            _mockPackageService
+                .Setup(s => s.DeletePackageAsync(1))
+                .ReturnsAsync((true, "Package deleted successfully."));
 
-        // Act
-        var result = await _controller.Edit(1, model);
+            // Act
+            var result = await _controller.DeleteConfirmed(1);
 
-        // Assert
-        var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal("Index", redirectResult.ActionName);
-        Assert.Equal("Cannot edit a package that is already reserved.", _controller.TempData["Error"]);
-    }
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            // We can verify the call
+            _mockPackageService.Verify(s => s.DeletePackageAsync(1), Times.Once);
+        }
 
-    [Fact]
-    public async Task Delete_Success_WhenPackageNotReserved()
-    {
-        // Arrange
-        var package = new Package
+        [Fact]
+        public async Task Delete_Fails_WhenPackageReserved()
         {
-            Id = 1,
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            Reservation = null,
-            CafeteriaId = _testCafeteria.Id,
-            Cafeteria = _testCafeteria
-        };
+            // Suppose the service says "Cannot delete a package that is reserved"
+            _mockPackageService
+                .Setup(s => s.DeletePackageAsync(1))
+                .ReturnsAsync((false, "Cannot delete a package that is already reserved."));
 
-        _mockPackageRepo.Setup(x => x.GetByIdAsync(1))
-            .ReturnsAsync(package);
-        
-        _mockPackageRepo.Setup(x => x.DeleteAsync(1))
-            .Returns(Task.CompletedTask);
+            // Act
+            var result = await _controller.DeleteConfirmed(1);
 
-        // Act
-        var result = await _controller.DeleteConfirmed(1);
-
-        // Assert
-        var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal("Index", redirectResult.ActionName);
-        _mockPackageRepo.Verify(x => x.DeleteAsync(1), Times.Once);
-    }
-
-    [Fact]
-    public async Task Delete_Fails_WhenPackageReserved()
-    {
-        // Arrange
-        var package = new Package
-        {
-            Id = 1,
-            Name = "Test Package",
-            City = City.Breda,
-            CafeteriaLocation = CafeteriaLocation.LA,
-            Reservation = new Reservation { StudentNumber = "123456" },
-            CafeteriaId = _testCafeteria.Id,
-            Cafeteria = _testCafeteria
-        };
-
-        _mockPackageRepo.Setup(x => x.GetByIdAsync(1))
-            .ReturnsAsync(package);
-
-        // Act
-        var result = await _controller.DeleteConfirmed(1);
-
-        // Assert
-        var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal("Index", redirectResult.ActionName);
-        Assert.Equal("Cannot delete a package that is already reserved.", _controller.TempData["Error"]);
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirectResult.ActionName);
+            Assert.Equal("Cannot delete a package that is already reserved.", _controller.TempData["Error"]);
+        }
     }
 }

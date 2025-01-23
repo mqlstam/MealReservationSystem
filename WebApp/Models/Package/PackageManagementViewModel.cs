@@ -1,33 +1,40 @@
-namespace WebApp.Models.Package;
+using Domain.Enums;
+using System;
+using System.Collections.Generic;
 
-public class PackageManagementViewModel : PackageBaseViewModel
+namespace WebApp.Models.Package
 {
-    // Indicates if a student has reserved this package
-    public bool IsReserved { get; set; }
-    
-    // Mark if the package is picked up
-    public bool IsPickedUp { get; set; }
-    
-    // Mark if the package is flagged as "No-Show" (auto or manual)
-    public bool IsNoShow { get; set; }
-
-    // A package is Expired only if never reserved (IsReserved == false) 
-    // and DateTime.Now > LastReservationDateTime
-    public bool IsExpired => !IsReserved && DateTime.Now > LastReservationDateTime;
-
-    // The user who reserved (if any)
-    public string? ReservedBy { get; set; }
-
-    // Show status text for employee’s dashboard
-    public string Status => GetStatus();
-
-    private string GetStatus()
+    public class PackageManagementViewModel
     {
-        if (IsNoShow) return "No-Show";
-        if (IsPickedUp) return "Picked Up";
-        if (IsExpired) return "Expired";
-        if (IsReserved) return "Reserved";
-        return "Available";
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public City City { get; set; }
+        public CafeteriaLocation CafeteriaLocation { get; set; }
+        public DateTime PickupDateTime { get; set; }
+        public DateTime LastReservationDateTime { get; set; }
+        public bool IsAdultOnly { get; set; }
+        public decimal Price { get; set; }
+        public MealType MealType { get; set; }
+        public List<string> Products { get; set; } = new();
+
+        // Reservation info
+        public bool IsReserved { get; set; }
+        public bool IsPickedUp { get; set; }
+        public bool IsNoShow { get; set; }
+        public string? ReservedBy { get; set; }
+
+        public bool IsExpired => !IsReserved && DateTime.Now > LastReservationDateTime;
+
+        public string Status
+        {
+            get
+            {
+                if (IsNoShow) return "No-Show";
+                if (IsPickedUp) return "Picked Up";
+                if (IsExpired) return "Expired";
+                if (IsReserved) return "Reserved";
+                return "Available";
+            }
+        }
     }
 }
-

@@ -1,12 +1,14 @@
 using Domain.Enums;
+using System.Collections.Generic;
 
-namespace WebApp.Models.Package;
-
-public class PackageListViewModel
+namespace WebApp.Models.Package
 {
-    public List<PackageManagementViewModel> Packages { get; set; } = new();
-    public City? CityFilter { get; set; }
-    public MealType? TypeFilter { get; set; }
-    public decimal? MaxPriceFilter { get; set; }
-    public bool ShowExpired { get; set; }
+    public class PackageListViewModel
+    {
+        public List<PackageManagementViewModel> Packages { get; set; } = new();
+        public City? CityFilter { get; set; }
+        public MealType? TypeFilter { get; set; }
+        public decimal? MaxPriceFilter { get; set; }
+        public bool ShowExpired { get; set; }
+    }
 }

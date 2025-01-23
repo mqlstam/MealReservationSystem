@@ -9,26 +9,22 @@
         background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 50%, #fce4ec 100%);
         padding: 2rem 1rem;
     }
-
     .form-card {
         background: rgba(255, 255, 255, 0.95);
         border-radius: 1rem;
         padding: 2rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
-
     .form-section {
         margin-bottom: 2rem;
         padding-bottom: 2rem;
         border-bottom: 1px solid #e9ecef;
     }
-
     .form-section:last-child {
         margin-bottom: 0;
         padding-bottom: 0;
         border-bottom: none;
     }
-
     .section-title {
         color: #1976d2;
         font-size: 1.25rem;
@@ -38,40 +34,33 @@
         align-items: center;
         gap: 0.5rem;
     }
-
     .form-floating {
         margin-bottom: 1rem;
     }
-
     .form-floating > label {
         color: #666;
     }
-
     .form-control,
     .form-select {
         border: 2px solid #e0e0e0;
         border-radius: 0.5rem;
         transition: all 0.3s ease;
     }
-
     .form-control:focus,
     .form-select:focus {
         border-color: #1976d2;
         box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
     }
-
     .product-input-group {
         position: relative;
         margin-bottom: 1rem;
     }
-
     .products-container {
         background: #f8f9fa;
         padding: 1.5rem;
         border-radius: 0.5rem;
         margin-bottom: 1rem;
     }
-
     .add-product-btn {
         background: #e3f2fd;
         color: #1976d2;
@@ -84,12 +73,10 @@
         align-items: center;
         gap: 0.5rem;
     }
-
     .add-product-btn:hover {
         background: #bbdefb;
         transform: translateY(-2px);
     }
-
     .remove-product-btn {
         background: #ffebee;
         color: #c62828;
@@ -101,17 +88,14 @@
         align-items: center;
         justify-content: center;
     }
-
     .remove-product-btn:hover {
         background: #ffcdd2;
     }
-
     .action-buttons {
         display: flex;
         gap: 1rem;
         margin-top: 2rem;
     }
-
     .submit-btn {
         background: linear-gradient(135deg, #2196f3, #1976d2);
         color: white;
@@ -124,12 +108,10 @@
         align-items: center;
         gap: 0.5rem;
     }
-
     .submit-btn:hover {
         transform: translateY(-2px);
         opacity: 0.9;
     }
-
     .cancel-btn {
         background: #e0e0e0;
         color: #333;
@@ -143,39 +125,33 @@
         gap: 0.5rem;
         text-decoration: none;
     }
-
     .cancel-btn:hover {
         background: #d5d5d5;
         color: #333;
         transform: translateY(-2px);
     }
-
     .text-danger {
         font-size: 0.875rem;
         margin-top: 0.25rem;
     }
-
     .input-group-text {
         background: #f8f9fa;
         border: 2px solid #e0e0e0;
         border-right: none;
         color: #666;
     }
-
     .adult-only-toggle {
         background: #f8f9fa;
         padding: 1rem;
         border-radius: 0.5rem;
         margin-top: 1rem;
     }
-
     .validation-summary {
         background: #ffebee;
         border-radius: 0.5rem;
         padding: 1rem;
         margin-bottom: 2rem;
     }
-
     .validation-summary ul {
         margin: 0;
         padding-left: 1.5rem;
@@ -195,6 +171,7 @@
                     </div>
                 }
 
+                <!-- Basic Info -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-info-circle"></i>
@@ -221,6 +198,7 @@
                     </div>
                 </div>
 
+                <!-- Location: Show only read-only fields using ViewBag -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-geo-alt"></i>
@@ -228,26 +206,27 @@
                     </h5>
                     <div class="row">
                         <div class="col-md-6">
-                            <!-- Display city from the employee's cafeteria as read-only text -->
+                            <!-- Read-only City info -->
                             <div class="form-floating">
-                                <input type="text" class="form-control" value="@ViewBag.CityName" disabled />
+                                <input type="text" class="form-control"
+                                       value='@(ViewBag.CityName ?? "Unknown City")'
+                                       disabled />
                                 <label>City</label>
                             </div>
-                            <!-- Hidden field to preserve city value for the model -->
-                            <input type="hidden" asp-for="City" value="@Model.City" />
                         </div>
                         <div class="col-md-6">
-                            <!-- Display cafeteria location from the employee's cafeteria as read-only text -->
+                            <!-- Read-only Cafeteria info -->
                             <div class="form-floating">
-                                <input type="text" class="form-control" value="@ViewBag.CafeteriaLocationName" disabled />
+                                <input type="text" class="form-control"
+                                       value='@(ViewBag.CafeteriaLocationName ?? "Unknown Cafeteria")'
+                                       disabled />
                                 <label>Cafeteria Location</label>
                             </div>
-                            <!-- Hidden field to preserve location value for the model -->
-                            <input type="hidden" asp-for="CafeteriaLocation" value="@Model.CafeteriaLocation" />
                         </div>
                     </div>
                 </div>
 
+                <!-- Timing & Price -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-clock"></i>
@@ -281,6 +260,7 @@
                     </div>
                 </div>
 
+                <!-- Example Products -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-box"></i>
@@ -290,7 +270,7 @@
                         <div id="productsContainer">
                             @if (Model.ExampleProducts == null || Model.ExampleProducts.Count == 0)
                             {
-                                <!-- Always provide at least one product field -->
+                                <!-- Provide at least one product field -->
                                 <div class="product-input-group">
                                     <div class="input-group">
                                         <input type="text" name="ExampleProducts[0]" class="form-control product-input"
@@ -326,6 +306,7 @@
                     </div>
                 </div>
 
+                <!-- Adult Only toggle -->
                 <div class="adult-only-toggle">
                     <div class="form-check">
                         <input asp-for="IsAdultOnly" class="form-check-input" type="checkbox"/>
@@ -423,7 +404,7 @@
         });
     }
 
-    document.getElementById('createPackageForm').addEventListener('submit', function (e) {
+    document.getElementById('createPackageForm').addEventListener('submit', function(e) {
         if (!validateProducts()) {
             e.preventDefault();
             return false;

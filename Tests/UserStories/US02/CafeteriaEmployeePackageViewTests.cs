@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Application.DTOs.PackageManagement;
 using Application.Services.PackageManagement;
 using Application.Services.PackageManagement.DTOs;
 using Domain.Enums;
@@ -9,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 using WebApp.Controllers;
-using WebApp.Models.Package;
 using Xunit;
 
 namespace Tests.UserStories.US02

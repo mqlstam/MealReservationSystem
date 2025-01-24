@@ -1,4 +1,5 @@
-@model WebApp.Models.Package.CreatePackageViewModel
+@model Application.DTOs.PackageManagement.CreatePackageViewModel
+
 @{
     ViewData["Title"] = "Create Package";
 }
@@ -270,7 +271,6 @@
                         <div id="productsContainer">
                             @if (Model.ExampleProducts == null || Model.ExampleProducts.Count == 0)
                             {
-                                <!-- Provide at least one product field -->
                                 <div class="product-input-group">
                                     <div class="input-group">
                                         <input type="text" name="ExampleProducts[0]" class="form-control product-input"
@@ -299,6 +299,7 @@
                             }
                         </div>
                         <div id="productsError" class="text-danger"></div>
+                        <!-- IMPORTANT: The onclick calls addProductField() -->
                         <button type="button" class="add-product-btn mt-3" onclick="addProductField()">
                             <i class="bi bi-plus-circle"></i>
                             Add Product
@@ -335,6 +336,8 @@
 @section Scripts {
 <partial name="_ValidationScriptsPartial"/>
 <script>
+
+
     let productIndex = @Model.ExampleProducts?.Count ?? 1;
 
     function validateProducts() {
@@ -359,14 +362,15 @@
         return isValid;
     }
 
+    // IMPORTANT: This function must exist in global scope for inline onclick to work
     function addProductField() {
         const container = document.getElementById('productsContainer');
         const div = document.createElement('div');
         div.className = 'product-input-group';
         div.innerHTML = `
             <div class="input-group">
-                <input type="text" name="ExampleProducts[${productIndex}]" 
-                       class="form-control product-input" 
+                <input type="text" name="ExampleProducts[${productIndex}]"
+                       class="form-control product-input"
                        placeholder="Product name" required/>
                 <button type="button" class="remove-product-btn">
                     <i class="bi bi-trash"></i>

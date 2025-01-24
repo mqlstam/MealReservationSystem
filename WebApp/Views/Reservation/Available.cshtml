@@ -1,6 +1,6 @@
-@model WebApp.Models.Reservation.AvailablePackagesViewModel
+@model Application.DTOs.Packages.AvailablePackagesViewModel
 @{
-ViewData["Title"] = "Available Packages";
+    ViewData["Title"] = "Available Packages";
 }
 
 <style>
@@ -145,10 +145,10 @@ ViewData["Title"] = "Available Packages";
 
         @if (TempData["Error"] != null)
         {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         }
 
         <div class="filter-card">
@@ -187,96 +187,93 @@ ViewData["Title"] = "Available Packages";
 
         @if (!Model.Packages.Any())
         {
-        <div class="alert alert-info text-center">
-            <i class="bi bi-info-circle me-2"></i>
-            No packages available matching your criteria.
-        </div>
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle me-2"></i>
+                No packages available matching your criteria.
+            </div>
         }
         else
         {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            @foreach (var package in Model.Packages)
-            {
-            <div class="col">
-                <div class="package-card">
-                    <div class="package-header">
-                        <h5 class="package-title">@package.Name</h5>
-                        <span class="package-type">@package.MealType</span>
-                    </div>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                @foreach (var package in Model.Packages)
+                {
+                    <div class="col">
+                        <div class="package-card">
+                            <div class="package-header">
+                                <h5 class="package-title">@package.Name</h5>
+                                <span class="package-type">@package.MealType</span>
+                            </div>
 
-                    <div class="package-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Price:</span>
-                            <span class="detail-value">@package.Price.ToString("C")</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Location:</span>
-                            <span class="detail-value">@package.Location, @package.City</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Pickup:</span>
-                            <span class="detail-value">@package.PickupDateTime.ToString("g")</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Reserve Before:</span>
-                            <span class="detail-value">@package.LastReservationDateTime.ToString("g")</span>
-                        </div>
-                    </div>
+                            <div class="package-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Price:</span>
+                                    <span class="detail-value">@package.Price.ToString("C")</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Location:</span>
+                                    <span class="detail-value">@package.CafeteriaLocation, @package.City</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Pickup:</span>
+                                    <span class="detail-value">@package.PickupDateTime.ToString("g")</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Reserve Before:</span>
+                                    <span class="detail-value">@package.LastReservationDateTime.ToString("g")</span>
+                                </div>
+                            </div>
 
-                    <div class="products-list">
-                        <h6><i class="bi bi-box me-2"></i>Example Products:</h6>
-                        <ul>
-                            @foreach (var product in package.ExampleProducts)
+                            <div class="products-list">
+                                <h6><i class="bi bi-box me-2"></i>Example Products:</h6>
+                                <ul>
+                                    @foreach (var product in package.ExampleProducts)
+                                    {
+                                        <li>@product</li>
+                                    }
+                                </ul>
+                            </div>
+
+                            @if (package.IsAdultOnly)
                             {
-                            <li>@product</li>
+                                <div class="adult-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    18+ Only
+                                </div>
                             }
-                        </ul>
-                    </div>
 
-                    @if (package.IsAdultOnly)
-                    {
-                    <div class="adult-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        18+ Only
+                            @* These checks avoid using dynamic in expressions *@
+                            @if (!package.HasExpired)
+                            {
+                                @if (package.CanReserve)
+                                {
+                                    <form asp-action="Reserve" asp-controller="Package" asp-route-id="@package.Id" method="post">
+                                        <button type="submit" class="reserve-btn">
+                                            <i class="bi bi-bag-plus me-2"></i>Reserve Package
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <div class="error-message">
+                                        <i class="bi bi-exclamation-circle me-2"></i>
+                                        @package.ReservationBlockReason
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="error-message">
+                                    <i class="bi bi-exclamation-circle me-2"></i>
+                                    @if (package.HasExpired)
+                                    {
+                                        <span>Reservation period has ended</span>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
-                    }
-
-                    @if (!package.HasExpired && !package.PickupExpired)
-                    {
-                    @if (package.CanReserve)
-                    {
-                    <form asp-action="Reserve" asp-controller="Package" asp-route-id="@package.Id" method="post">
-                        <button type="submit" class="reserve-btn">
-                            <i class="bi bi-bag-plus me-2"></i>Reserve Package
-                        </button>
-                    </form>
-                    }
-                    else
-                    {
-                    <div class="error-message">
-                        <i class="bi bi-exclamation-circle me-2"></i>
-                        @package.ReservationBlockReason
-                    </div>
-                    }
-                    }
-                    else
-                    {
-                    <div class="error-message">
-                        <i class="bi bi-exclamation-circle me-2"></i>
-                        @if (package.HasExpired)
-                        {
-                        <span>Reservation period has ended</span>
-                        }
-                        else
-                        {
-                        <span>Pickup time has passed</span>
-                        }
-                    </div>
-                    }
-                </div>
+                }
             </div>
-            }
-        </div>
         }
     </div>
 </div>
@@ -289,10 +286,6 @@ ViewData["Title"] = "Available Packages";
         document.querySelector('input[name="MaxPriceFilter"]').value = '';
         document.getElementById('filterForm').submit();
     }
-
-    // Auto-refresh the page every minute to keep statuses current
-    setTimeout(function() {
-        location.reload();
-    }, 60000);
 </script>
 }
+

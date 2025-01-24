@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace WebApp.Validation;
+namespace Application.Common.Validation;
 
 public class MinimumAgeAttribute : ValidationAttribute
 {

@@ -29,6 +29,21 @@ namespace Application.DTOs.PackageManagement
         public bool IsPickedUp { get; set; }
         public bool IsNoShow { get; set; }
         public string? ReservedBy { get; set; }
+
+        // Expired if the last reservation time is passed AND not reserved, or pickup is in the past
         public bool IsExpired => PickupDateTime < DateTime.Now;
+
+        // Add a Status property for usage in Index.cshtml
+        public string Status
+        {
+            get
+            {
+                if (IsNoShow) return "No-Show";
+                if (IsPickedUp) return "Picked Up";
+                if (IsExpired) return "Expired";
+                if (IsReserved) return "Reserved";
+                return "Available";
+            }
+        }
     }
 }

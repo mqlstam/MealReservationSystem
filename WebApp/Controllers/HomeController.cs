@@ -1,8 +1,8 @@
 using System.Diagnostics;
+using Application.DTOs.Common;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using WebApp.Models;
 
 namespace WebApp.Controllers;
 

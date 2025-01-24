@@ -1,14 +1,8 @@
 using Domain.Enums;
 
-namespace WebApp.Models.Reservation;
+namespace Application.DTOs.Reservation;
 
-public class MyReservationsViewModel
-{
-    public List<ReservationItem> Reservations { get; set; } = new();
-    public int NoShowCount { get; set; }
-}
-
-public class ReservationItem
+public class ReservationDto
 {
     public int Id { get; set; }
     public string PackageName { get; set; } = string.Empty;
@@ -20,5 +14,4 @@ public class ReservationItem
     public List<string> Products { get; set; } = new();
     public bool IsPickedUp { get; set; }
     public bool IsNoShow { get; set; }
-    public bool HasExpired => DateTime.Now > PickupDateTime;
 }

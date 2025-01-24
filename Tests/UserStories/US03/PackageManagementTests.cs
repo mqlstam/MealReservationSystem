@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 using WebApp.Controllers;
-using WebApp.Models.Package;
 using Xunit;
 using Application.Services.PackageManagement;
 using Application.Services.PackageManagement.DTOs;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using Application.DTOs.PackageManagement;
 
 namespace Tests.UserStories.US03
 {

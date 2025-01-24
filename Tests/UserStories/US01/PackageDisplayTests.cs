@@ -1,6 +1,7 @@
 using Application.Common.Interfaces;
 using Application.Common.Interfaces.Services;
 using Application.DTOs.Common;
+using Application.DTOs.Packages;
 using Application.Services;
 using Domain.Entities;
 using Domain.Enums;
@@ -229,7 +230,7 @@ public class PackageDisplayTests
         Assert.Equal(package.Id, resultPackage.Id);
         Assert.Equal(package.Name, resultPackage.Name);
         Assert.Equal(package.City, resultPackage.City);
-        Assert.Equal(package.CafeteriaLocation, resultPackage.Location);
+        Assert.Equal(package.CafeteriaLocation, resultPackage.CafeteriaLocation);
         Assert.Equal(package.PickupDateTime, resultPackage.PickupDateTime);
         Assert.Equal(package.LastReservationDateTime, resultPackage.LastReservationDateTime);
         Assert.Equal(package.Price, resultPackage.Price);

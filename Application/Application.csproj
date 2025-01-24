@@ -17,10 +17,13 @@
 
     <ItemGroup>
       <Compile Remove="Common\Services\IServerTimeService.cs" />
+      <Compile Remove="Interfaces\Services\IPackageApiService.cs" />
+      <Compile Remove="Services\PackageApiService.cs" />
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="Common\" />
+      <Folder Include="Common\Results\" />
     </ItemGroup>
 
 </Project>

@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Domain.Enums;
-using WebApp.Models.Package;
 using Application.Services.PackageManagement;
 using Application.Services.PackageManagement.DTOs;
 using Infrastructure.Identity;
@@ -10,6 +9,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Application.DTOs.PackageManagement;
 
 namespace WebApp.Controllers
 {

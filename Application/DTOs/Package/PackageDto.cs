@@ -1,8 +1,8 @@
 using Domain.Enums;
 
-namespace WebApp.Models.Package;
+namespace Application.DTOs.Package;
 
-public class PackageViewModel
+public class PackageDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -13,8 +13,8 @@ public class PackageViewModel
     public bool IsAdultOnly { get; set; }
     public decimal Price { get; set; }
     public MealType MealType { get; set; }
-    public List<string> ExampleProducts { get; set; } = new();
+    public List<string> Products { get; set; } = new();
     public bool IsReserved { get; set; }
     public bool IsPickedUp { get; set; }
-    public string StatusText { get; set; }
+    public string? ReservedBy { get; set; }
 }

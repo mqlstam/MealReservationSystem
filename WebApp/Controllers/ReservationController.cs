@@ -1,11 +1,13 @@
+using Application.Common.Interfaces;
 using Application.Common.Interfaces.Services;
 using Application.DTOs.Common;
+using Application.DTOs.Packages;
+using Application.DTOs.Reservation;
 using Domain.Enums;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using WebApp.Models.Reservation;
 
 namespace WebApp.Controllers;
 
@@ -14,13 +16,16 @@ public class ReservationController : Controller
 {
     private readonly IPackageViewService _packageViewService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IMappingService _mappingService;
 
     public ReservationController(
         IPackageViewService packageViewService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IMappingService mappingService)
     {
         _packageViewService = packageViewService;
         _userManager = userManager;
+        _mappingService = mappingService;
     }
 
     [HttpGet]
@@ -38,35 +43,15 @@ public class ReservationController : Controller
 
         var packages = await _packageViewService.GetAvailablePackagesAsync(user.Id, filter);
         
-        // Apply max price filter in memory if specified
-        if (maxPriceFilter.HasValue)
+        var viewModel = new AvailablePackagesViewModel
         {
-            packages = packages.Where(p => p.Price <= maxPriceFilter.Value).ToList();
-        }
-
-        var model = new AvailablePackagesViewModel
-        {
-            Packages = packages.Select(p => new AvailablePackageItem
-            {
-                Id = p.Id,
-                Name = p.Name,
-                City = p.City,
-                Location = p.Location,
-                PickupDateTime = p.PickupDateTime,
-                LastReservationDateTime = p.LastReservationDateTime,
-                IsAdultOnly = p.IsAdultOnly,
-                Price = p.Price,
-                MealType = p.MealType,
-                ExampleProducts = p.ExampleProducts,
-                CanReserve = p.CanReserve,
-                ReservationBlockReason = p.ReservationBlockReason
-            }).ToList(),
+            Packages = packages.ToList(), // Now this works because types match
             CityFilter = cityFilter,
             TypeFilter = typeFilter,
-            MaxPriceFilter = maxPriceFilter // Make sure to pass the filter back to the view
+            MaxPriceFilter = maxPriceFilter
         };
 
-        return View(model);
+        return View(viewModel);
     }
 
     public async Task<IActionResult> MyReservations()
@@ -77,7 +62,7 @@ public class ReservationController : Controller
         var reservations = await _packageViewService.GetStudentReservationsAsync(user.Id);
         var noShowCount = await _packageViewService.GetStudentNoShowCountAsync(user.Id);
 
-        var model = new MyReservationsViewModel
+        var viewModel = new MyReservationsViewModel
         {
             Reservations = reservations.Select(r => new ReservationItem
             {
@@ -95,6 +80,6 @@ public class ReservationController : Controller
             NoShowCount = noShowCount
         };
 
-        return View(model);
+        return View(viewModel);
     }
 }

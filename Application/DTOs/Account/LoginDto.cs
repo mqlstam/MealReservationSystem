@@ -1,17 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace WebApp.Models.Account;
+namespace Application.DTOs.Account;
 
-public class LoginViewModel
+public class LoginDto
 {
     [Required]
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
-    [Display(Name = "Remember me?")]
     public bool RememberMe { get; set; }
 }

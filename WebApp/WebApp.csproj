@@ -23,4 +23,11 @@
         <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Views\Package\Available.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Package\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Package\Manage.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Package\MyReservations.cshtml" />
+    </ItemGroup>
+
 </Project>

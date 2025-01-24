@@ -1,10 +1,10 @@
 using Application.Common.Interfaces;
+using Application.DTOs.Account;
 using Domain.Enums;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using WebApp.Models.Account;
 
 namespace WebApp.Controllers
 {
@@ -12,18 +12,16 @@ namespace WebApp.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-
-        // 1) Inject IStudentService
         private readonly IStudentService _studentService;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            IStudentService studentService)  // <-- Add this parameter
+            IStudentService studentService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _studentService = studentService; // <-- Store for later use
+            _studentService = studentService;
         }
 
         [HttpGet]
@@ -36,11 +34,10 @@ namespace WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(RegisterDto model)
         {
             if (ModelState.IsValid)
             {
-                // Create the Identity user record
                 var user = new ApplicationUser
                 {
                     UserName = model.Email,
@@ -58,13 +55,10 @@ namespace WebApp.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Assign to the correct role
                     await _userManager.AddToRoleAsync(user, model.IsStudent ? "Student" : "CafeteriaEmployee");
 
-                    // 2) If this is a student, also create a Student entry in main DB
                     if (model.IsStudent && !string.IsNullOrWhiteSpace(model.StudentNumber))
                     {
-                        // Convert the StudyCity string to our City enum (default to Breda if parse fails)
                         City parsedCity = City.Breda;
                         if (!string.IsNullOrEmpty(model.StudyCity) &&
                             Enum.TryParse(model.StudyCity, out City cityValue))
@@ -72,7 +66,6 @@ namespace WebApp.Controllers
                             parsedCity = cityValue;
                         }
 
-                        // Call the StudentService to ensure a Student row exists in the main DB
                         await _studentService.GetOrCreateStudentAsync(
                             identityId: user.Id,
                             studentNumber: model.StudentNumber,
@@ -85,19 +78,16 @@ namespace WebApp.Controllers
                         );
                     }
 
-                    // Sign in and redirect
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return RedirectToAction("Index", "Home");
                 }
 
-                // If result failed, show errors
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
             }
 
-            // Return model with errors
             return View(model);
         }
 
@@ -112,7 +102,7 @@ namespace WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+        public async Task<IActionResult> Login(LoginDto model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
 
@@ -126,7 +116,6 @@ namespace WebApp.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Get the user to check their role
                     var user = await _userManager.FindByEmailAsync(model.Email);
                     if (user != null)
                     {
@@ -146,17 +135,17 @@ namespace WebApp.Controllers
                 }
 
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                return View(model);
             }
 
             return View(model);
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return RedirectToAction("Login", "Account");  // Changed from redirecting to Home/Index
+            return RedirectToAction("Login", "Account");
         }
 
         private IActionResult RedirectToLocal(string? returnUrl)

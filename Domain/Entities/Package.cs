@@ -1,47 +1,26 @@
-using System.ComponentModel.DataAnnotations;
 using Domain.Enums;
 
-namespace Domain.Entities;
-
-public class Package
+namespace Domain.Entities
 {
-    public int Id { get; set; }
-    
-    [Required]
-    public string Name { get; set; } = string.Empty;
-    
-    public City City { get; set; }
-    
-    public CafeteriaLocation CafeteriaLocation { get; set; }
-    
-    public DateTime PickupDateTime { get; set; }
-    
-    public DateTime LastReservationDateTime { get; set; }
-    
-    private bool? _isAdultOnly;
-    public bool IsAdultOnly
+    public class Package
     {
-        get => _isAdultOnly ?? Products.Any(p => p.IsAlcoholic);
-        set => _isAdultOnly = value;
-    }
-    
-    [Range(0.01, double.MaxValue)]
-    public decimal Price { get; set; }
-    
-    public MealType MealType { get; set; }
-    
-    public ICollection<Product> Products { get; set; } = new List<Product>();
-    
-    public Reservation? Reservation { get; set; }
-    
-    public int CafeteriaId { get; set; }
-    public Cafeteria Cafeteria { get; set; } = null!;
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public City City { get; set; }
+        public CafeteriaLocation CafeteriaLocation { get; set; }
+        public DateTime PickupDateTime { get; set; }
+        public DateTime LastReservationDateTime { get; set; }
+        public bool IsAdultOnly { get; private set; } // Make IsAdultOnly private set
+        public decimal Price { get; set; }
+        public MealType MealType { get; set; }
+        public int CafeteriaId { get; set; }
+        public Cafeteria Cafeteria { get; set; } = null!;
+        public Reservation? Reservation { get; set; }
+        public ICollection<Product> Products { get; set; } = new List<Product>();
 
-    // Add validation method for max 2 days advance creation
-    public bool IsValidCreationDate()
-    {
-        var maxAdvanceDays = 2;
-        var latestAllowedDate = DateTime.Now.AddDays(maxAdvanceDays);
-        return PickupDateTime <= latestAllowedDate;
+        public void UpdateIsAdultOnly()
+        {
+            IsAdultOnly = Products.Any(p => p.IsAlcoholic);
+        }
     }
 }

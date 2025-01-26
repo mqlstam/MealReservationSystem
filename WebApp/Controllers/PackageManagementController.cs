@@ -119,10 +119,10 @@ namespace WebApp.Controllers
                 Name = model.Name,
                 PickupDateTime = model.PickupDateTime,
                 LastReservationDateTime = model.LastReservationDateTime,
-                IsAdultOnly = model.IsAdultOnly,
                 Price = model.Price,
                 MealType = model.MealType,
-                ExampleProducts = model.ExampleProducts
+                ExampleProducts = model.ExampleProducts,
+                AlcoholicProducts = model.AlcoholicProducts // ADD THIS LINE!
             };
 
             var (success, errorMsg) = await _packageService.CreatePackageAsync(user.Id, dto);
@@ -172,7 +172,6 @@ namespace WebApp.Controllers
                 Name = dto.Name,
                 PickupDateTime = dto.PickupDateTime,
                 LastReservationDateTime = dto.LastReservationDateTime,
-                IsAdultOnly = dto.IsAdultOnly,
                 Price = dto.Price,
                 MealType = dto.MealType,
                 ExampleProducts = dto.ExampleProducts
@@ -200,7 +199,6 @@ namespace WebApp.Controllers
                 Name = model.Name,
                 PickupDateTime = model.PickupDateTime,
                 LastReservationDateTime = model.LastReservationDateTime,
-                IsAdultOnly = model.IsAdultOnly,
                 Price = model.Price,
                 MealType = model.MealType,
                 ExampleProducts = model.ExampleProducts
@@ -229,7 +227,6 @@ namespace WebApp.Controllers
                 Name = dto?.Name ?? "",
                 PickupDateTime = dto?.PickupDateTime ?? DateTime.Now,
                 LastReservationDateTime = dto?.LastReservationDateTime ?? DateTime.Now,
-                IsAdultOnly = dto?.IsAdultOnly ?? false,
                 Price = dto?.Price ?? 0,
                 MealType = dto?.MealType ?? MealType.BreadAssortment,
                 Products = dto?.ExampleProducts ?? new List<string>(),

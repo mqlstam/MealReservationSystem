@@ -27,6 +27,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Apply the Package configuration
+        modelBuilder.ApplyConfiguration(new PackageConfiguration());
         modelBuilder.Entity<Student>(entity =>
         {
             entity.HasKey(s => s.StudentNumber);
@@ -62,6 +64,22 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        // Update IsAdultOnly based on products before saving
+        var packageEntries = ChangeTracker.Entries<Package>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+        foreach (var entry in packageEntries)
+        {
+            var package = entry.Entity;
+            // Force load products if not already loaded
+            if (!entry.Collection(p => p.Products).IsLoaded)
+            {
+                await entry.Collection(p => p.Products).LoadAsync(cancellationToken);
+            }
+            package.UpdateIsAdultOnly();
+        }
+
+
         // Check for age restrictions on reservations before saving
         var reservationEntries = ChangeTracker.Entries<Reservation>()
             .Where(e => e.State == EntityState.Added)
@@ -70,7 +88,6 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
         foreach (var reservation in reservationEntries)
         {
-            // Load related entities
             var package = await Packages
                 .Include(p => p.Products)
                 .FirstOrDefaultAsync(p => p.Id == reservation.PackageId, cancellationToken);
@@ -86,4 +103,5 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
         return await base.SaveChangesAsync(cancellationToken);
     }
+    
 }

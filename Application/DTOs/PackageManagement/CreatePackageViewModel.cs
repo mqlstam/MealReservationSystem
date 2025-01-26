@@ -11,18 +11,10 @@ namespace Application.DTOs.PackageManagement
         public string Name { get; set; } = string.Empty;
 
         [Required]
-        public City City { get; set; }
-
-        [Required]
-        public CafeteriaLocation CafeteriaLocation { get; set; }
-
-        [Required]
         public DateTime PickupDateTime { get; set; }
 
         [Required]
         public DateTime LastReservationDateTime { get; set; }
-
-        public bool IsAdultOnly { get; set; }
 
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
         public decimal Price { get; set; }
@@ -33,5 +25,7 @@ namespace Application.DTOs.PackageManagement
         [Required]
         [MinLength(1, ErrorMessage = "At least one product is required.")]
         public List<string> ExampleProducts { get; set; } = new();
+
+        public List<string>? AlcoholicProducts { get; set; }
     }
 }

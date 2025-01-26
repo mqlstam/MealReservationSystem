@@ -165,6 +165,7 @@
 
         <div class="form-card">
             <form asp-action="Create" method="post" id="createPackageForm">
+                <!-- Validation summary -->
                 @if (!ViewContext.ModelState.IsValid)
                 {
                     <div class="validation-summary">
@@ -172,12 +173,9 @@
                     </div>
                 }
 
-                <!-- Basic Info -->
+                <!-- Basic Info Section -->
                 <div class="form-section">
-                    <h5 class="section-title">
-                        <i class="bi bi-info-circle"></i>
-                        Basic Information
-                    </h5>
+                    <h5 class="section-title">Basic Information</h5>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-floating">
@@ -188,8 +186,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <select asp-for="MealType" asp-items="Html.GetEnumSelectList<Domain.Enums.MealType>()"
-                                        class="form-select">
+                                <select asp-for="MealType" asp-items="Html.GetEnumSelectList<Domain.Enums.MealType>()" class="form-select">
                                     <option value="">Select Type</option>
                                 </select>
                                 <label asp-for="MealType">Meal Type</label>
@@ -199,40 +196,28 @@
                     </div>
                 </div>
 
-                <!-- Location: Show only read-only fields using ViewBag -->
+                <!-- Location Section -->
                 <div class="form-section">
-                    <h5 class="section-title">
-                        <i class="bi bi-geo-alt"></i>
-                        Location Details
-                    </h5>
+                    <h5 class="section-title">Location Details</h5>
                     <div class="row">
                         <div class="col-md-6">
-                            <!-- Read-only City info -->
                             <div class="form-floating">
-                                <input type="text" class="form-control"
-                                       value='@(ViewBag.CityName ?? "Unknown City")'
-                                       disabled />
+                                <input type="text" class="form-control" value='@(ViewBag.CityName ?? "Unknown City")' disabled />
                                 <label>City</label>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <!-- Read-only Cafeteria info -->
                             <div class="form-floating">
-                                <input type="text" class="form-control"
-                                       value='@(ViewBag.CafeteriaLocationName ?? "Unknown Cafeteria")'
-                                       disabled />
+                                <input type="text" class="form-control" value='@(ViewBag.CafeteriaLocationName ?? "Unknown Cafeteria")' disabled />
                                 <label>Cafeteria Location</label>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Timing & Price -->
+                <!-- Timing & Price Section -->
                 <div class="form-section">
-                    <h5 class="section-title">
-                        <i class="bi bi-clock"></i>
-                        Timing & Price
-                    </h5>
+                    <h5 class="section-title">Timing & Price</h5>
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-floating">
@@ -252,8 +237,7 @@
                             <div class="form-floating">
                                 <div class="input-group">
                                     <span class="input-group-text">€</span>
-                                    <input asp-for="Price" class="form-control" type="number" step="0.01" min="0.01"
-                                           max="100.00" placeholder="Price"/>
+                                    <input asp-for="Price" class="form-control" type="number" step="0.01" min="0.01" max="100.00"/>
                                 </div>
                                 <span asp-validation-for="Price" class="text-danger"></span>
                             </div>
@@ -261,63 +245,45 @@
                     </div>
                 </div>
 
-                <!-- Example Products -->
+                <!-- Products Section -->
                 <div class="form-section">
-                    <h5 class="section-title">
-                        <i class="bi bi-box"></i>
-                        Products
-                    </h5>
+                    <h5 class="section-title">Products</h5>
                     <div class="products-container">
                         <div id="productsContainer">
-                            @if (Model.ExampleProducts == null || Model.ExampleProducts.Count == 0)
+                            @for (int i = 0; i < Model.ExampleProducts.Count; i++)
                             {
                                 <div class="product-input-group">
                                     <div class="input-group">
-                                        <input type="text" name="ExampleProducts[0]" class="form-control product-input"
-                                               placeholder="Product name" required/>
-                                        <button type="button" class="remove-product-btn" style="display: none;">
+                                        <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
+                                               value="@Model.ExampleProducts[i]"
+                                               placeholder="Product name" required />
+                                        <div class="form-check ms-2">
+                                            <input type="checkbox" 
+                                                   name="AlcoholicProducts" 
+                                                   value="@Model.ExampleProducts[i]"
+                                                   class="form-check-input alcoholic-check" 
+                                                   id="alcoholic-@i"
+                                                   @(Model.AlcoholicProducts?.Contains(Model.ExampleProducts[i]) == true ? "checked" : "") />
+                                            <label class="form-check-label" for="alcoholic-@i">
+                                                Contains Alcohol
+                                            </label>
+                                        </div>
+                                        <button type="button" class="remove-product-btn">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
                                 </div>
                             }
-                            else
-                            {
-                                for (int i = 0; i < Model.ExampleProducts.Count; i++)
-                                {
-                                    <div class="product-input-group">
-                                        <div class="input-group">
-                                            <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
-                                                   value="@Model.ExampleProducts[i]"
-                                                   placeholder="Product name" required/>
-                                            <button type="button" class="remove-product-btn" style="display: none;">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                }
-                            }
                         </div>
                         <div id="productsError" class="text-danger"></div>
-                        <!-- IMPORTANT: The onclick calls addProductField() -->
-                        <button type="button" class="add-product-btn mt-3" onclick="addProductField()">
+                        <button type="button" class="add-product-btn mt-3" onclick="addProduct()">
                             <i class="bi bi-plus-circle"></i>
                             Add Product
                         </button>
                     </div>
                 </div>
 
-                <!-- Adult Only toggle -->
-                <div class="adult-only-toggle">
-                    <div class="form-check">
-                        <input asp-for="IsAdultOnly" class="form-check-input" type="checkbox"/>
-                        <label class="form-check-label" asp-for="IsAdultOnly">
-                            <i class="bi bi-shield-lock me-2"></i>
-                            This package is for adults only (18+)
-                        </label>
-                    </div>
-                </div>
-
+                <!-- Action Buttons -->
                 <div class="action-buttons">
                     <button type="submit" class="submit-btn">
                         <i class="bi bi-check-circle"></i>
@@ -334,96 +300,125 @@
 </div>
 
 @section Scripts {
-<partial name="_ValidationScriptsPartial"/>
-<script>
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let productIndex = @Model.ExampleProducts.Count;
 
+        function validateProducts() {
+            const inputs = document.querySelectorAll('.product-input');
+            let isValid = true;
+            const errorDiv = document.getElementById('productsError');
+            errorDiv.textContent = '';
 
-    let productIndex = @Model.ExampleProducts?.Count ?? 1;
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
 
-    function validateProducts() {
-        const inputs = document.querySelectorAll('.product-input');
-        let isValid = true;
-        const errorDiv = document.getElementById('productsError');
-        errorDiv.textContent = '';
-
-        inputs.forEach(input => {
-            if (!input.value.trim()) {
-                isValid = false;
-                input.classList.add('is-invalid');
-            } else {
-                input.classList.remove('is-invalid');
+            if (!isValid) {
+                errorDiv.textContent = 'All product names are required.';
             }
-        });
 
-        if (!isValid) {
-            errorDiv.textContent = 'All product names are required.';
+            return isValid;
         }
 
-        return isValid;
-    }
-
-    // IMPORTANT: This function must exist in global scope for inline onclick to work
-    function addProductField() {
-        const container = document.getElementById('productsContainer');
-        const div = document.createElement('div');
-        div.className = 'product-input-group';
-        div.innerHTML = `
-            <div class="input-group">
-                <input type="text" name="ExampleProducts[${productIndex}]"
-                       class="form-control product-input"
-                       placeholder="Product name" required/>
-                <button type="button" class="remove-product-btn">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        `;
-        container.appendChild(div);
-        productIndex++;
-        updateRemoveButtons();
-    }
-
-    function removeProduct(button) {
-        const group = button.closest('.product-input-group');
-        if (group) {
-            group.remove();
-            reindexProducts();
+        function addProduct() {
+            const container = document.getElementById('productsContainer');
+            const div = document.createElement('div');
+            div.className = 'product-input-group';
+            div.innerHTML = `
+                <div class="input-group">
+                    <input type="text" name="ExampleProducts[${productIndex}]" 
+                           class="form-control product-input"
+                           placeholder="Product name" required />
+                    <div class="form-check ms-2">
+                        <input type="checkbox" 
+                               name="AlcoholicProducts" 
+                               class="form-check-input alcoholic-check" 
+                               id="alcoholic-${productIndex}" />
+                        <label class="form-check-label" for="alcoholic-${productIndex}">
+                            Contains Alcohol
+                        </label>
+                    </div>
+                    <button type="button" class="remove-product-btn">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(div);
+            productIndex++;
+            
+            // Add event listeners
+            const input = div.querySelector('.product-input');
+            const checkbox = div.querySelector('.alcoholic-check');
+            const removeButton = div.querySelector('.remove-product-btn');
+            
+            input.addEventListener('change', function() {
+                checkbox.value = this.value;
+            });
+            
+            removeButton.addEventListener('click', function() {
+                removeProduct(this);
+            });
+            
             updateRemoveButtons();
         }
-    }
 
-    function reindexProducts() {
-        const inputs = document.querySelectorAll('.product-input');
-        inputs.forEach((input, index) => {
-            input.name = `ExampleProducts[${index}]`;
-        });
-        productIndex = inputs.length;
-    }
-
-    function updateRemoveButtons() {
-        const buttons = document.querySelectorAll('.remove-product-btn');
-        const showButtons = document.querySelectorAll('.product-input-group').length > 1;
-        buttons.forEach(button => {
-            button.style.display = showButtons ? 'block' : 'none';
-            button.onclick = () => removeProduct(button);
-        });
-    }
-
-    document.getElementById('createPackageForm').addEventListener('submit', function(e) {
-        if (!validateProducts()) {
-            e.preventDefault();
-            return false;
+        function removeProduct(button) {
+            const group = button.closest('.product-input-group');
+            if (group) {
+                group.remove();
+                reindexProducts();
+                updateRemoveButtons();
+                validateProducts();
+            }
         }
-        return true;
-    });
 
-    // Validate as user types
-    document.getElementById('productsContainer').addEventListener('input', function (e) {
-        if (e.target.classList.contains('product-input')) {
-            validateProducts();
+        function reindexProducts() {
+            const inputs = document.querySelectorAll('.product-input');
+            inputs.forEach((input, index) => {
+                input.name = `ExampleProducts[${index}]`;
+            });
+            productIndex = inputs.length;
         }
-    });
 
-    // Initial call to show/hide remove buttons
-    updateRemoveButtons();
-</script>
+        function updateRemoveButtons() {
+            const buttons = document.querySelectorAll('.remove-product-btn');
+            const showButtons = document.querySelectorAll('.product-input-group').length > 1;
+            buttons.forEach(button => {
+                button.style.display = showButtons ? 'block' : 'none';
+            });
+        }
+
+        document.getElementById('createPackageForm').addEventListener('submit', function(e) {
+            if (!validateProducts()) {
+                e.preventDefault();
+                return false;
+            }
+            return true;
+        });
+
+        // Initialize
+        updateRemoveButtons();
+        
+        // Add change handlers to existing inputs
+        document.querySelectorAll('.product-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const checkbox = this.parentElement.querySelector('.alcoholic-check');
+                checkbox.value = this.value;
+            });
+        });
+        
+        // Add click handlers to existing remove buttons
+        document.querySelectorAll('.remove-product-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                removeProduct(this);
+            });
+        });
+    </script>
 }

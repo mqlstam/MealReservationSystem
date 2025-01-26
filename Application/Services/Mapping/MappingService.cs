@@ -19,7 +19,6 @@ namespace Application.Services.Mapping
                 CafeteriaLocation = package.CafeteriaLocation,
                 PickupDateTime = package.PickupDateTime,
                 LastReservationDateTime = package.LastReservationDateTime,
-                IsAdultOnly = package.IsAdultOnly,
                 Price = package.Price,
                 MealType = package.MealType,
                 Products = package.Products.Select(p => p.Name).ToList(),
@@ -55,18 +54,13 @@ namespace Application.Services.Mapping
                 Id = package.Id,
                 Name = package.Name,
                 City = package.City,
-
-                // Updated to match the new property name 'CafeteriaLocation'
                 CafeteriaLocation = package.CafeteriaLocation,
-
                 PickupDateTime = package.PickupDateTime,
                 LastReservationDateTime = package.LastReservationDateTime,
                 IsAdultOnly = package.IsAdultOnly,
                 Price = package.Price,
                 MealType = package.MealType,
                 ExampleProducts = package.Products.Select(p => p.Name).ToList(),
-
-                // Default to true (i.e. can reserve) or set logic from your domain
                 CanReserve = true,
                 ReservationBlockReason = null
             };
@@ -82,7 +76,6 @@ namespace Application.Services.Mapping
                 CafeteriaLocation = dto.CafeteriaLocation,
                 PickupDateTime = dto.PickupDateTime,
                 LastReservationDateTime = dto.LastReservationDateTime,
-                IsAdultOnly = dto.IsAdultOnly,
                 Price = dto.Price,
                 MealType = dto.MealType
             };

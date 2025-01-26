@@ -165,15 +165,18 @@ namespace Application.Services.PackageManagement
                 CafeteriaLocation = location,
                 PickupDateTime = dto.PickupDateTime,
                 LastReservationDateTime = dto.LastReservationDateTime,
-                IsAdultOnly = dto.IsAdultOnly,
                 Price = dto.Price,
                 MealType = dto.MealType,
                 CafeteriaId = cafeteria.Id,
                 Products = dto.ExampleProducts
-                    .Select(name => new Product { Name = name })
+                    .Select(name => new Product {
+                        Name = name,
+                        IsAlcoholic = dto.AlcoholicProducts?.Contains(name) ?? false
+                    })
                     .ToList()
             };
 
+            newPackage.UpdateIsAdultOnly();
             await _packageRepository.AddAsync(newPackage);
             return (true, "Package created successfully.");
         }
@@ -202,10 +205,10 @@ namespace Application.Services.PackageManagement
                 Name = package.Name,
                 PickupDateTime = package.PickupDateTime,
                 LastReservationDateTime = package.LastReservationDateTime,
-                IsAdultOnly = package.IsAdultOnly,
                 Price = package.Price,
                 MealType = package.MealType,
-                ExampleProducts = package.Products?.Select(p => p.Name).ToList() ?? new List<string>()
+                ExampleProducts = package.Products.Select(p => p.Name).ToList(),
+                AlcoholicProducts = package.Products.Where(p => p.IsAlcoholic).Select(p => p.Name).ToList()
             };
             return (true, false, dto, null);
         }
@@ -260,16 +263,19 @@ namespace Application.Services.PackageManagement
             package.Name = dto.Name;
             package.PickupDateTime = dto.PickupDateTime;
             package.LastReservationDateTime = dto.LastReservationDateTime;
-            package.IsAdultOnly = dto.IsAdultOnly;
             package.Price = dto.Price;
             package.MealType = dto.MealType;
 
             package.Products.Clear();
             foreach (var productName in dto.ExampleProducts)
             {
-                package.Products.Add(new Product { Name = productName });
+                package.Products.Add(new Product {
+                    Name = productName,
+                    IsAlcoholic = dto.AlcoholicProducts?.Contains(productName) ?? false
+                });
             }
 
+            package.UpdateIsAdultOnly(); // Call the method after updating Products
             await _packageRepository.UpdateAsync(package);
             return (true, "Package updated successfully.");
         }

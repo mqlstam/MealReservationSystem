@@ -144,13 +144,6 @@
         transform: translateY(-2px);
     }
 
-    .adult-only-toggle {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-top: 1rem;
-    }
-
     .validation-summary {
         background: #ffebee;
         border-radius: 0.5rem;
@@ -207,7 +200,7 @@
                     </div>
                 </div>
 
-                <!-- Location: show read-only from ViewBag -->
+                <!-- Location -->
                 <div class="form-section">
                     <h5 class="section-title">
                         <i class="bi bi-geo-alt"></i>
@@ -215,7 +208,6 @@
                     </h5>
                     <div class="row">
                         <div class="col-md-6">
-                            <!-- Show read-only city info -->
                             <div class="form-floating">
                                 <input type="text" class="form-control"
                                        value='@(ViewBag.CityName ?? "Unknown City")'
@@ -224,7 +216,6 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <!-- Show read-only cafeteria location info -->
                             <div class="form-floating">
                                 <input type="text" class="form-control"
                                        value='@(ViewBag.CafeteriaLocationName ?? "Unknown Cafeteria")'
@@ -283,7 +274,18 @@
                                         <input type="text" name="ExampleProducts[@i]" class="form-control product-input"
                                                value="@Model.ExampleProducts[i]"
                                                placeholder="Product name" required />
-                                        <button type="button" class="remove-product-btn" onclick="removeProduct(this)">
+                                        <div class="form-check ms-2">
+                                            <input type="checkbox" 
+                                                   name="AlcoholicProducts" 
+                                                   value="@Model.ExampleProducts[i]"
+                                                   class="form-check-input alcoholic-check" 
+                                                   id="alcoholic-@i"
+                                                   @(Model.AlcoholicProducts?.Contains(Model.ExampleProducts[i]) == true ? "checked" : "") />
+                                            <label class="form-check-label" for="alcoholic-@i">
+                                                Contains Alcohol
+                                            </label>
+                                        </div>
+                                        <button type="button" class="remove-product-btn">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
@@ -295,17 +297,6 @@
                             <i class="bi bi-plus-circle"></i>
                             Add Product
                         </button>
-                    </div>
-                </div>
-
-                <!-- Adult-Only Toggle -->
-                <div class="adult-only-toggle">
-                    <div class="form-check">
-                        <input asp-for="IsAdultOnly" class="form-check-input" type="checkbox" />
-                        <label class="form-check-label" asp-for="IsAdultOnly">
-                            <i class="bi bi-shield-lock me-2"></i>
-                            This package is for adults only (18+)
-                        </label>
                     </div>
                 </div>
 
@@ -361,18 +352,38 @@
                 <input type="text" name="ExampleProducts[${productIndex}]" 
                        class="form-control product-input"
                        placeholder="Product name" required />
+                <div class="form-check ms-2">
+                    <input type="checkbox" 
+                           name="AlcoholicProducts" 
+                           class="form-check-input alcoholic-check" 
+                           id="alcoholic-${productIndex}" />
+                    <label class="form-check-label" for="alcoholic-${productIndex}">
+                        Contains Alcohol
+                    </label>
+                </div>
                 <button type="button" class="remove-product-btn">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
         `;
+        
         container.appendChild(div);
         productIndex++;
+        
+        // Add event listeners
+        const input = div.querySelector('.product-input');
+        const checkbox = div.querySelector('.alcoholic-check');
+        const removeButton = div.querySelector('.remove-product-btn');
+        
+        input.addEventListener('change', function() {
+            checkbox.value = this.value;
+        });
+        
+        removeButton.addEventListener('click', function() {
+            removeProduct(this);
+        });
+        
         updateRemoveButtons();
-
-        // Hook for the new remove button
-        const newRemoveButton = div.querySelector('.remove-product-btn');
-        newRemoveButton.onclick = () => removeProduct(newRemoveButton);
     }
 
     function removeProduct(button) {
@@ -409,15 +420,22 @@
         return true;
     });
 
-    // Validate on input
-    document.getElementById('productsContainer').addEventListener('input', function(e) {
-        if (e.target.classList.contains('product-input')) {
-            validateProducts();
-        }
-    });
-
-    // Initial
+    // Initialize
     updateRemoveButtons();
+    
+    // Add change handlers to existing inputs
+    document.querySelectorAll('.product-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const checkbox = this.parentElement.querySelector('.alcoholic-check');
+            checkbox.value = this.value;
+        });
+    });
+    
+    // Add click handlers to existing remove buttons
+    document.querySelectorAll('.remove-product-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            removeProduct(this);
+        });
+    });
 </script>
 }
-

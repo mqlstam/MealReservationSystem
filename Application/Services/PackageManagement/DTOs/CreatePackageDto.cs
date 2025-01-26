@@ -5,10 +5,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Application.Services.PackageManagement.DTOs
 {
-    /// <summary>
-    /// DTO used in the Application layer for creating or editing a package.
-    /// Excludes City and CafeteriaLocation as these are set based on the employee's assigned cafeteria.
-    /// </summary>
     public class CreatePackageDto
     {
         [Required]
@@ -20,8 +16,6 @@ namespace Application.Services.PackageManagement.DTOs
         [Required]
         public DateTime LastReservationDateTime { get; set; }
 
-        public bool IsAdultOnly { get; set; }
-
         [Range(0.01, double.MaxValue)]
         public decimal Price { get; set; }
 
@@ -29,5 +23,8 @@ namespace Application.Services.PackageManagement.DTOs
         public MealType MealType { get; set; }
 
         public List<string> ExampleProducts { get; set; } = new();
+        
+        // List to track which products contain alcohol
+        public List<string> AlcoholicProducts { get; set; } = new();
     }
 }

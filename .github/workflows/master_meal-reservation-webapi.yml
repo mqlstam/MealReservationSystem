@@ -1,11 +1,15 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
 name: Build and deploy ASP.Net Core app to Azure Web App - meal-reservation-webapi
 on:
   push:
     branches:
       - master
   workflow_dispatch:
+
+# Add these permissions at the top level of the workflow
+permissions:
+  contents: read
+  deployments: write
+  statuses: write  # Add this line specifically
 
 jobs:
   build:
@@ -41,7 +45,10 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     
     permissions:
-      id-token: write #This is required for requesting the JWT
+      id-token: write
+      contents: read
+      deployments: write
+      statuses: write  # Add this here as well
     
     steps:
       - name: Download artifact from build job
@@ -64,21 +71,27 @@ jobs:
           slot-name: 'Production'
           package: .
       
-      - name: Publish Deployment Status
-        if: always()
+      # Optionally, you can remove this step if it continues to cause issues
+      - name: Create GitHub Deployment
         uses: actions/github-script@v7
         with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const description = '${{ job.status }}' === 'success' 
-              ? '✅ WebAPI Deployment successful' 
-              : '❌ WebAPI Deployment failed';
-            
-            github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: '${{ job.status }}' === 'success' ? 'success' : 'failure',
-              description: description,
-              context: 'WebAPI Deployment',
-              target_url: '${{ steps.deploy-to-webapp.outputs.webapp-url }}'
+            const { repo, owner } = context.repo;
+            const ref = context.sha;
+            const deploymentResponse = await github.rest.repos.createDeployment({
+              owner,
+              repo,
+              ref,
+              environment: 'Production',
+              auto_merge: false,
+              required_contexts: []
+            });
+
+            await github.rest.repos.createDeploymentStatus({
+              owner,
+              repo,
+              deployment_id: deploymentResponse.data.id,
+              state: 'success',
+              environment_url: '${{ steps.deploy-to-webapp.outputs.webapp-url }}'
             });

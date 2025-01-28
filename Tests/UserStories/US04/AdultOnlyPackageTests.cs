@@ -16,6 +16,9 @@ public class AdultOnlyPackageTests
             Products = new List<Product> { alcoholicProduct }
         };
 
+        // Act
+        package.UpdateIsAdultOnly();
+
         // Assert
         Assert.True(package.IsAdultOnly);
     }
@@ -30,6 +33,9 @@ public class AdultOnlyPackageTests
             Name = "Test Package",
             Products = new List<Product> { nonAlcoholicProduct }
         };
+
+        // Act
+        package.UpdateIsAdultOnly();
 
         // Assert
         Assert.False(package.IsAdultOnly);

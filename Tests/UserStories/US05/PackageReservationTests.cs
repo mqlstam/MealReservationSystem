@@ -261,7 +261,6 @@ public class PackageReservationTests
             CafeteriaLocation = CafeteriaLocation.LA,
             PickupDateTime = DateTime.Now.AddDays(1),
             LastReservationDateTime = DateTime.Now.AddHours(23),
-            IsAdultOnly = isAdultOnly,
             Price = 5.00m,
             MealType = MealType.Mixed
         };

@@ -1,14 +1,13 @@
-using Application.Common.Interfaces;
-using Application.Common.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence;
 using Infrastructure.Services;
-using Microsoft.EntityFrameworkCore;
+using Application.Common.Interfaces.Services;
 
 namespace Tests.Helpers;
 
 public static class TestDbContext
 {
-    public static ApplicationDbContext Create(IStudentService? studentService = null)
+    public static ApplicationDbContext Create()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())

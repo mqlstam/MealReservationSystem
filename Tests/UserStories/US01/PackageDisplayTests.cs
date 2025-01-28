@@ -66,7 +66,6 @@ public class PackageDisplayTests
             LastReservationDateTime = isExpired ? DateTime.Now.AddDays(-2) : DateTime.Now.AddHours(23),
             Price = 5.00m,
             MealType = MealType.Mixed,
-            IsAdultOnly = isAdultOnly,
             Products = new List<Product>
             {
                 new() { Name = "Test Product 1", IsAlcoholic = isAdultOnly },

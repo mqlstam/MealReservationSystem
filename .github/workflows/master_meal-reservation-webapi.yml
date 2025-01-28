@@ -5,11 +5,10 @@ on:
       - master
   workflow_dispatch:
 
-# Add these permissions at the top level of the workflow
 permissions:
   contents: read
   deployments: write
-  statuses: write  # Add this line specifically
+  statuses: write
 
 jobs:
   build:
@@ -22,20 +21,40 @@ jobs:
         with:
           dotnet-version: '8.x'
       
+      - name: Display .NET info
+        run: |
+          dotnet --version
+          dotnet --list-sdks
+          dotnet --list-runtimes
+      
+      - name: Restore dependencies
+        run: dotnet restore WebApi/WebApi.csproj
+      
       - name: Build with dotnet
-        run: dotnet build WebApi/WebApi.csproj --configuration Release
+        run: |
+          dotnet build WebApi/WebApi.csproj --configuration Release
+          echo "Build completed successfully"
       
       - name: Run tests
-        run: dotnet test WebApi/WebApi.csproj --no-restore --verbosity normal
+        run: dotnet test WebApi/WebApi.csproj --no-restore --verbosity detailed
       
       - name: dotnet publish
-        run: dotnet publish WebApi/WebApi.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: |
+          dotnet publish WebApi/WebApi.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+          echo "Publish completed successfully"
+      
+      - name: List published files
+        run: |
+          echo "Published files:"
+          dir "${{env.DOTNET_ROOT}}/myapp"
       
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: webapi-app
           path: ${{env.DOTNET_ROOT}}/myapp
+          retention-days: 1
+          if-no-files-found: error
 
   deploy:
     runs-on: windows-latest
@@ -48,13 +67,24 @@ jobs:
       id-token: write
       contents: read
       deployments: write
-      statuses: write  # Add this here as well
+      statuses: write
     
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: webapi-app
+      
+      - name: List downloaded files
+        run: |
+          echo "Downloaded files:"
+          dir
+      
+      - name: Verify .NET runtime
+        run: |
+          dotnet --version
+          dotnet --list-sdks
+          dotnet --list-runtimes
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -71,7 +101,11 @@ jobs:
           slot-name: 'Production'
           package: .
       
-      # Optionally, you can remove this step if it continues to cause issues
+      - name: Display deployment details
+        run: |
+          echo "Deployment URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}"
+          echo "Deployment completed successfully"
+      
       - name: Create GitHub Deployment
         uses: actions/github-script@v7
         with:
@@ -87,7 +121,9 @@ jobs:
               auto_merge: false,
               required_contexts: []
             });
-
+            
+            core.info(`Deployment created with ID: ${deploymentResponse.data.id}`);
+            
             await github.rest.repos.createDeploymentStatus({
               owner,
               repo,

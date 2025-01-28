@@ -1,0 +1,133 @@
+name: Build and deploy ASP.Net Core app to Azure Web App - meal-reservation-webapi
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+  statuses: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+      
+      - name: Display .NET info
+        run: |
+          dotnet --version
+          dotnet --list-sdks
+          dotnet --list-runtimes
+      
+      - name: Restore dependencies
+        run: dotnet restore WebApi/WebApi.csproj
+      
+      - name: Build with dotnet
+        run: |
+          dotnet build WebApi/WebApi.csproj --configuration Release
+          echo "Build completed successfully"
+      
+      - name: Run tests
+        run: dotnet test WebApi/WebApi.csproj --no-restore --verbosity detailed
+      
+      - name: dotnet publish
+        run: |
+          dotnet publish WebApi/WebApi.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+          echo "Publish completed successfully"
+      
+      - name: List published files
+        run: |
+          echo "Published files:"
+          dir "${{env.DOTNET_ROOT}}/myapp"
+      
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapi-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
+    permissions:
+      id-token: write
+      contents: read
+      deployments: write
+      statuses: write
+    
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: webapi-app
+      
+      - name: List downloaded files
+        run: |
+          echo "Downloaded files:"
+          dir
+      
+      - name: Verify .NET runtime
+        run: |
+          dotnet --version
+          dotnet --list-sdks
+          dotnet --list-runtimes
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8DE3E5879AD6496DA7A5536E2EA862C7 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B49454D51E774D2FA2CA2B67DFD536AB }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1CE74AE3871047B39C7434F0DB4626D3 }}
+      
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'meal-reservation-webapi'
+          slot-name: 'Production'
+          package: .
+      
+      - name: Display deployment details
+        run: |
+          echo "Deployment URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}"
+          echo "Deployment completed successfully"
+      
+      - name: Create GitHub Deployment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { repo, owner } = context.repo;
+            const ref = context.sha;
+            const deploymentResponse = await github.rest.repos.createDeployment({
+              owner,
+              repo,
+              ref,
+              environment: 'Production',
+              auto_merge: false,
+              required_contexts: []
+            });
+            
+            core.info(`Deployment created with ID: ${deploymentResponse.data.id}`);
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner,
+              repo,
+              deployment_id: deploymentResponse.data.id,
+              state: 'success',
+              environment_url: '${{ steps.deploy-to-webapp.outputs.webapp-url }}'
+            });

@@ -77,6 +77,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 await entry.Collection(p => p.Products).LoadAsync(cancellationToken);
             }
             package.UpdateIsAdultOnly();
+            entry.Property(p => p.IsAdultOnly).IsModified = true;  // Add this line
         }
 
 

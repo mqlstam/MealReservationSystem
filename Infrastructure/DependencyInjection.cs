@@ -22,6 +22,19 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddDbContext<ApplicationDbContext>((provider, options) =>
+        {
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                sqlOptions =>
+                {
+                    sqlOptions.CommandTimeout(5);
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 1,
+                        maxRetryDelay: TimeSpan.FromSeconds(1),
+                        errorNumbersToAdd: null);
+                });
+        });
         services.AddDatabaseServices(configuration);
         services.AddIdentityServices();
         services.AddCoreServices();

@@ -1,14 +1,16 @@
 // Infrastructure/Persistence/Configurations/PackageConfiguration.cs
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Domain.Entities;
 
 public class PackageConfiguration : IEntityTypeConfiguration<Package>
 {
     public void Configure(EntityTypeBuilder<Package> builder)
     {
-        // Remove the backing field configuration
         builder.Property(p => p.IsAdultOnly)
-            .HasColumnName("IsAdultOnly");
+            .HasColumnName("IsAdultOnly")
+            .IsRequired();  // Add this line
 
         // Configure the relationship with Products and the join table
         builder.HasMany(p => p.Products)

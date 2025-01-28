@@ -1,4 +1,14 @@
+using Application.Common.Interfaces;
+using Application.Common.Interfaces.Services;
+using Application.Services;
+using Application.Services.Mapping;
+using Application.Services.NoShow;
 using Infrastructure;
+using Infrastructure.Identity;
+using Infrastructure.Persistence;
+using Infrastructure.Repositories;
+using Infrastructure.Services;
+using Infrastructure.Services.Identity;
 using WebApi.GraphQL;
 using WebApi.GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +39,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins",
         policy => policy
-            .WithOrigins("https://meal-reservation-avans.azurewebsites.net")
+            .WithOrigins("https://meal-reservation-avans.azurewebsites.net") // Update with your allowed origins
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
@@ -57,7 +67,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<Infrastructure.Persistence.ApplicationDbContext>();
+        var context = services.GetRequiredService<ApplicationDbContext>();
         await context.Database.MigrateAsync();
     }
     catch (Exception ex)
@@ -80,7 +90,20 @@ public class GraphQLErrorFilter : IErrorFilter
 
     public IError OnError(IError error)
     {
+        // Log the full exception details, including the stack trace
         _logger.LogError(error.Exception, "GraphQL Error: {Message}", error.Message);
-        return error.WithMessage(error.Message);
+
+        // Customize the error message for the client.
+        // You might want to return a generic message in production to avoid 
+        // exposing sensitive information.
+        #if DEBUG
+            // In development, return the full error message including the stack trace
+            return error
+                .WithMessage(error.Exception?.Message ?? error.Message)
+                .WithCode(error.Code);
+        #else
+            // In production, return a generic error message
+            return error.WithMessage("An unexpected error occurred.");
+        #endif
     }
 }

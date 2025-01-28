@@ -1,23 +1,22 @@
+// WebApi/GraphQL/MealReservationQuery.cs
 using Application.Common.Interfaces;
 using HotChocolate;
 using HotChocolate.Types;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.GraphQL;
 
 [ExtendObjectType("Query")]
 public class MealReservationQuery
 {
-    private readonly IPackageRepository _packageRepository;
-    private readonly IReservationRepository _reservationRepository;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<MealReservationQuery> _logger;
 
     public MealReservationQuery(
-        IPackageRepository packageRepository,
-        IReservationRepository reservationRepository,
+        IServiceScopeFactory scopeFactory,
         ILogger<MealReservationQuery> logger)
     {
-        _packageRepository = packageRepository;
-        _reservationRepository = reservationRepository;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -25,7 +24,10 @@ public class MealReservationQuery
     {
         try
         {
-            var packages = await _packageRepository.GetAvailablePackagesAsync();
+            using var scope = _scopeFactory.CreateScope();
+            var packageRepository = scope.ServiceProvider.GetRequiredService<IPackageRepository>();
+            
+            var packages = await packageRepository.GetAvailablePackagesAsync();
             _logger.LogInformation("Retrieved {Count} available packages", packages.Count());
             return packages;
         }
@@ -40,7 +42,10 @@ public class MealReservationQuery
     {
         try
         {
-            var package = await _packageRepository.GetByIdAsync(id);
+            using var scope = _scopeFactory.CreateScope();
+            var packageRepository = scope.ServiceProvider.GetRequiredService<IPackageRepository>();
+            
+            var package = await packageRepository.GetByIdAsync(id);
             _logger.LogInformation("Retrieved package with ID {Id}", id);
             return package;
         }
@@ -55,8 +60,11 @@ public class MealReservationQuery
     {
         try
         {
+            using var scope = _scopeFactory.CreateScope();
+            var packageRepository = scope.ServiceProvider.GetRequiredService<IPackageRepository>();
+            
             var cafeteriaLocation = Enum.Parse<Domain.Enums.CafeteriaLocation>(location);
-            var packages = await _packageRepository.GetByLocationAsync(cafeteriaLocation);
+            var packages = await packageRepository.GetByLocationAsync(cafeteriaLocation);
             _logger.LogInformation("Retrieved {Count} packages for location {Location}", 
                 packages.Count(), location);
             return packages;
@@ -72,7 +80,10 @@ public class MealReservationQuery
     {
         try
         {
-            var reservations = await _reservationRepository.GetByStudentIdAsync(studentId);
+            using var scope = _scopeFactory.CreateScope();
+            var reservationRepository = scope.ServiceProvider.GetRequiredService<IReservationRepository>();
+            
+            var reservations = await reservationRepository.GetByStudentIdAsync(studentId);
             _logger.LogInformation("Retrieved {Count} reservations for student {StudentId}", 
                 reservations.Count(), studentId);
             return reservations;

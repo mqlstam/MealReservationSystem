@@ -13,7 +13,7 @@ public class PackageType : ObjectType<Package>
         descriptor.Field(p => p.CafeteriaLocation);
         descriptor.Field(p => p.PickupDateTime);
         descriptor.Field(p => p.LastReservationDateTime);
-        descriptor.Field(p => p.IsAdultOnly);
+        descriptor.Field(p => p.IsAdultOnly);  // Make sure this is here
         descriptor.Field(p => p.Price);
         descriptor.Field(p => p.MealType);
         
@@ -24,7 +24,6 @@ public class PackageType : ObjectType<Package>
             .ResolveWith<PackageResolvers>(r => r.IsReserved(default!));
     }
 }
-
 public class PackageResolvers
 {
     public IEnumerable<string> GetProductNames([Parent] Package package)

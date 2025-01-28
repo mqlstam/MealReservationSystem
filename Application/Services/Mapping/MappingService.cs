@@ -19,6 +19,7 @@ namespace Application.Services.Mapping
                 CafeteriaLocation = package.CafeteriaLocation,
                 PickupDateTime = package.PickupDateTime,
                 LastReservationDateTime = package.LastReservationDateTime,
+                IsAdultOnly = package.IsAdultOnly,  // Make sure this is being mapped
                 Price = package.Price,
                 MealType = package.MealType,
                 Products = package.Products.Select(p => p.Name).ToList(),

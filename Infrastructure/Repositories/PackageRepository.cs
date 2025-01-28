@@ -27,8 +27,10 @@ public class PackageRepository : IPackageRepository
     public async Task<IEnumerable<Package>> GetAvailablePackagesAsync()
     {
         return await _context.Packages
+            .AsNoTracking()    
             .Include(p => p.Products)
             .Include(p => p.Cafeteria)
+            .AsNoTracking()
             .Where(p => p.Reservation == null && p.PickupDateTime > DateTime.Now)
             .OrderBy(p => p.PickupDateTime)
             .ToListAsync();

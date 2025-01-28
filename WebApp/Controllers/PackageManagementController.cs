@@ -122,7 +122,7 @@ namespace WebApp.Controllers
                 Price = model.Price,
                 MealType = model.MealType,
                 ExampleProducts = model.ExampleProducts,
-                AlcoholicProducts = model.AlcoholicProducts // ADD THIS LINE!
+                AlcoholicProducts = model.AlcoholicProducts 
             };
 
             var (success, errorMsg) = await _packageService.CreatePackageAsync(user.Id, dto);
@@ -174,7 +174,8 @@ namespace WebApp.Controllers
                 LastReservationDateTime = dto.LastReservationDateTime,
                 Price = dto.Price,
                 MealType = dto.MealType,
-                ExampleProducts = dto.ExampleProducts
+                ExampleProducts = dto.ExampleProducts,
+                AlcoholicProducts = dto.AlcoholicProducts
             };
 
             ViewBag.PackageId = id;
@@ -201,7 +202,8 @@ namespace WebApp.Controllers
                 LastReservationDateTime = model.LastReservationDateTime,
                 Price = model.Price,
                 MealType = model.MealType,
-                ExampleProducts = model.ExampleProducts
+                ExampleProducts = model.ExampleProducts,
+                AlcoholicProducts = model.AlcoholicProducts
             };
 
             var (success, err) = await _packageService.UpdatePackageAsync(id, dto, user.Id);
